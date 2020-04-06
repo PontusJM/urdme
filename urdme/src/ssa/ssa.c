@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <omp.h>
 
 #include "propensities.h"
 #include "inline.h"
@@ -35,8 +36,9 @@ void ssa(const PropensityFun *rfun,
 /* Specification of the inputs, see nsm.c */
 {
   /* reaction rates and sum of rates */
-  double srrate,*rrate;
-
+  double *rrate;//
+  //srrate,
+  
   /* state vector */
   int *xx;
 
@@ -53,22 +55,28 @@ void ssa(const PropensityFun *rfun,
   xx = (int *)MALLOC(Mspecies*sizeof(int));
   rrate = (double *)MALLOC(Mreactions*sizeof(double));
 
+  omp_set_dynamic(0);
+  omp_set_num_threads(4);
+
   /* Loop over Nreplicas cases. */
   for (int k = 0; k < Nreplicas; k++) {
+
     /* set new master seed */
     srand48(seed_long[k]);
-
-    /* main loop over the (independent) cells */
+    
+    /* main loop over the (independent) cells */ 
+    #pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
+      
       /* Set (xx,tt) to the initial state. */
       size_t it = 0;
       double tt = tspan[0];
       memcpy(xx,&u0[Mspecies*subvol+k*Ndofs],Mspecies*sizeof(int));
-
+      
       /* Calculate the propensity for every reaction. Store the sum of
 	 the reaction intensities in srrate. */
       size_t j;
-      srrate = 0.0;
+      double srrate = 0.0;
       for (j = 0; j < M1; j++) {
 	rrate[j] = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]],
 			      jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
@@ -79,7 +87,7 @@ void ssa(const PropensityFun *rfun,
 				 &ldata[subvol*dsize],gdata,sd[subvol]);
 	srrate += rrate[j];
       }
-
+      
       /* Main simulation loop. */
       for ( ; ; ) {
 
@@ -91,19 +99,19 @@ void ssa(const PropensityFun *rfun,
 	if (tt >= tspan[it] || isinf(tt)) {
 	  for (; it < tlen && (tt >= tspan[it] || isinf(tt)); it++)
 	    memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
-
+	  
 	  /* If the simulation has reached the final time, continue to
 	     next subvolume. */
 	  if (it >= tlen) break;
 	}
-
+	
 	/* a) Determine the reaction re that did occur. */
-	const double rand = drand48()*srrate;
+	const double rand = (drand48())*srrate;
 	double cum;
 	int re;
 	for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
 	     cum += rrate[++re]);
-
+	
 	/* elaborate floating point fix: */
 	if (re >= Mreactions) re = Mreactions-1;
 	if (rrate[re] == 0.0) {
@@ -122,6 +130,7 @@ void ssa(const PropensityFun *rfun,
 
 	/* b) Update the state of the subvolume. */
 	for (int i = jcN[re]; i < jcN[re+1]; i++) {
+	  #pragma omp atomic
 	  xx[irN[i]] += prN[i];
 	  if (xx[irN[i]] < 0) errcode = 1;
 	}
@@ -130,18 +139,16 @@ void ssa(const PropensityFun *rfun,
 	for (int i = jcG[Mspecies+re]; i < jcG[Mspecies+re+1]; i++) {
 	  const int j = irG[i];
 	  const double old = rrate[j];
-	  if (j < M1)
-	    srrate += (rrate[j] = 
-		       inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]],
-				  jcS[j+1]-jcS[j],
-				  vol[subvol],sd[subvol]))-old;
-	  else
-	    srrate += (rrate[j] = 
-		       (*rfun[j-M1])(xx,tt,vol[subvol],
-				     &ldata[subvol*dsize],
-				     gdata,sd[subvol]))-old;
-	}
-
+	  if (j < M1){
+	    rrate[j] = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]], jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
+	    srrate += rrate[j]-old;
+	     }
+	  else{
+	    rrate[j] = (*rfun[j-M1])(xx,tt,vol[subvol], &ldata[subvol*dsize], gdata,sd[subvol]);
+	     srrate += rrate[j]-old;
+	     }
+	  }
+	
 	total_reactions++; /* counter */
 
       next_event:
@@ -149,16 +156,17 @@ void ssa(const PropensityFun *rfun,
 	if (errcode) {
 	  /* Report the error that occurred and exit. */
 	  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
-	  report(k*Ncells+subvol,0,Nreplicas*Ncells,
-		 0,total_reactions,errcode,report_level);
+	  //report(k*Ncells+subvol,0,Nreplicas*Ncells,
+	  //	 0,total_reactions,errcode,report_level);
 	  break;
 	}
       }
       if (report_level)
-	report(k*Ncells+subvol,0,Nreplicas*Ncells,
-	       0,total_reactions,0,report_level);
+	;
+	//report(k*Ncells+subvol,0,Nreplicas*Ncells,
+	//	       0,total_reactions,0,report_level);
     }
-  }
+    }
 
   FREE(rrate);
   FREE(xx);

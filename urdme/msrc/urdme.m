@@ -180,6 +180,7 @@ if umod.compile
   if ~isempty(umod.propensities) && ~any(umod.propensities == '.')
     umod.propensities = [umod.propensities '.c'];
   end
+  disp(umod.propensities);
   feval(['mexmake_' umod.solver],umod.propensities,umod.makeargs{:});
 else
   l_info(umod.report,2,'Compilation turned off.\n');

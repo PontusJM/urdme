@@ -37,7 +37,7 @@ else
 end
 
 % default options
-optdef.openmp = false;
+optdef.openmp = true;
 optdef.define = '';
 optdef.include = '';
 optdef.link = '';
@@ -67,6 +67,7 @@ include = {['-I' path] ['-I' path '../../include']};
 if ~isempty(opts.include)
   include = [include ['-I' opts.include]];
 end
+disp(path);
 link = {omp_link ['-L' path] ['-L' path '../']};
 if ~isempty(opts.link)
   link = [link ['-L' opts.link]];
@@ -92,8 +93,13 @@ mx = mexext;
 % platforms (edit here)
 if strcmp(mx,'mexa64')
   cc = 'CC=gcc';
+  if opts.openmp
+      warning('Running with openMP');
+  else
+      warning('Running without openMP');
+  end
   cflags = ['CFLAGS= -fPIC ' omp_cflags ...
-            '-fno-omit-frame-pointer -std=c99 -O3 ' ...
+            '-g -fno-omit-frame-pointer -std=c99 -O3 ' ...
             '-D_GNU_SOURCE -pthread -fexceptions '];
   
   mex('-silent','-largeArrayDims',cc,[cflags define], ...

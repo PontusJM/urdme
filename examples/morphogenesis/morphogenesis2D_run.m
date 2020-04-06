@@ -44,6 +44,14 @@ end
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
 
+%umod.D = sparse(zeros());
+
+umod.D = sparse(zeros(size(umod.D)));
+
+disp(umod.D);
+
+umod.solver = 'ssa';
+
 % solve
 umod = urdme(umod,'seed',17,'report',0);
 
@@ -88,7 +96,15 @@ vmod = brusselator(vmod);
 vmod.vol = 100/mean(vmod.vol)*vmod.vol;
 
 % solve
+
+vmod.D = sparse(zeros(size(vmod.D)));
+
+vmod.solver = 'ssa';
+
+
+profile on
 vmod = urdme(vmod,'seed',17,'report',0);
+profsave
 
 % visualize using PDE Toolbox
 vmod = urdme2pde(vmod);
