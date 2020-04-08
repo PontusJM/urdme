@@ -46,17 +46,21 @@ void ssa(const PropensityFun *rfun,
   ReportFun report = &URDMEreportFun;
   
   /* OpenMP settings */
+#if defined(_OPENMP)
   omp_set_dynamic(0);
-  omp_set_num_threads(4);
-
+  omp_set_num_threads(8);
+#endif
+  
   /* Loop over Nreplicas cases. */
   for (int k = 0; k < Nreplicas; k++) {
-    /* set new master seed */
-    srand48(seed_long[k]);
     
     /* main loop over the (independent) cells */ 
     #pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
+
+      /* unique seed for each subvolume */
+      unsigned int seed = subvol;
+      
       size_t it = 0;
       double tt = tspan[0];
 
@@ -92,8 +96,9 @@ void ssa(const PropensityFun *rfun,
       /* Main simulation loop. */
       for ( ; ; ) {
 	/* time for next reaction */
-	tt -= log(1.0-drand48())/srrate;
-
+	//tt -= log(1.0-drand48())/srrate;
+	tt -= log(1.0-((double) rand_r(&seed)/ (double) RAND_MAX))/srrate;
+	
 	/* Store solution if the global time counter tt has passed the
 	   next time in tspan. */
 	if (tt >= tspan[it] || isinf(tt)) {
@@ -106,7 +111,8 @@ void ssa(const PropensityFun *rfun,
 	}
 	
 	/* a) Determine the reaction re that did occur. */
-	const double rand = (drand48())*srrate;
+	//const double rand = (drand48())*srrate;
+	const double rand = ((double) rand_r(&seed)/(double) RAND_MAX)*srrate;
 	double cum;
 	int re;
 	for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
