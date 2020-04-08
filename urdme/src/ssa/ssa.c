@@ -1,5 +1,6 @@
 /* ssa.c - URDME SSA solver. */
 
+/* P. Melin   2020-04-08 (OpenMP support) */
 /* S. Engblom 2019-11-15 (Nreplicas, multiple seeds syntax) */
 /* S. Engblom 2017-02-22 */
 
