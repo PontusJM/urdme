@@ -35,13 +35,6 @@ void ssa(const PropensityFun *rfun,
 
 /* Specification of the inputs, see nsm.c */
 {
-  /* reaction rates and sum of rates */
-  double *rrate;//
-  //srrate,
-  
-  /* state vector */
-  int *xx;
-
   /* stats */
   long int total_reactions = 0;
   int errcode = 0;
@@ -50,47 +43,53 @@ void ssa(const PropensityFun *rfun,
 
   /* reporter */
   ReportFun report = &URDMEreportFun;
-
-  /* allocate state and rate vectors */
-  xx = (int *)MALLOC(Mspecies*sizeof(int));
-  rrate = (double *)MALLOC(Mreactions*sizeof(double));
-
+  
+  /* OpenMP settings */
   omp_set_dynamic(0);
   omp_set_num_threads(4);
 
   /* Loop over Nreplicas cases. */
   for (int k = 0; k < Nreplicas; k++) {
-
     /* set new master seed */
     srand48(seed_long[k]);
     
     /* main loop over the (independent) cells */ 
     #pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
-      
-      /* Set (xx,tt) to the initial state. */
       size_t it = 0;
       double tt = tspan[0];
+
+      /* allocate state vector */
+      int *xx = (int *)MALLOC(Mspecies*sizeof(int));
+
+      /* allocate reaction rate vector */
+      double *rrate = (double *)MALLOC(Mreactions*sizeof(double));
+
+      /* sum of reaction rates */
+      double srrate;
+      
+      /* Set (xx,tt) to the initial state. */
       memcpy(xx,&u0[Mspecies*subvol+k*Ndofs],Mspecies*sizeof(int));
       
       /* Calculate the propensity for every reaction. Store the sum of
 	 the reaction intensities in srrate. */
       size_t j;
-      double srrate = 0.0;
+      srrate = 0.0;
       for (j = 0; j < M1; j++) {
-	rrate[j] = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]],
+	double temp = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]],
 			      jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
+	rrate[j] = temp;
 	srrate += rrate[j];
       }
       for (; j < Mreactions; j++) {
-	rrate[j] = (*rfun[j-M1])(xx,tt,vol[subvol],
+	double temp =  (*rfun[j-M1])(xx,tt,vol[subvol],
 				 &ldata[subvol*dsize],gdata,sd[subvol]);
+	rrate[j] = temp;
 	srrate += rrate[j];
       }
       
       /* Main simulation loop. */
       for ( ; ; ) {
-
 	/* time for next reaction */
 	tt -= log(1.0-drand48())/srrate;
 
@@ -117,7 +116,7 @@ void ssa(const PropensityFun *rfun,
 	if (rrate[re] == 0.0) {
 	  /* go backwards and try to find first nonzero reaction rate */
 	  for ( ; re > 0 && rrate[re] == 0.0; re--);
-
+	  
 	  /* No nonzero rate found, but a reaction was sampled. This can
 	     happen due to floating point errors in the iterated
 	     recalculated rates. */
@@ -130,7 +129,6 @@ void ssa(const PropensityFun *rfun,
 
 	/* b) Update the state of the subvolume. */
 	for (int i = jcN[re]; i < jcN[re+1]; i++) {
-	  #pragma omp atomic
 	  xx[irN[i]] += prN[i];
 	  if (xx[irN[i]] < 0) errcode = 1;
 	}
@@ -142,12 +140,12 @@ void ssa(const PropensityFun *rfun,
 	  if (j < M1){
 	    rrate[j] = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]], jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
 	    srrate += rrate[j]-old;
-	     }
+	  }
 	  else{
 	    rrate[j] = (*rfun[j-M1])(xx,tt,vol[subvol], &ldata[subvol*dsize], gdata,sd[subvol]);
-	     srrate += rrate[j]-old;
-	     }
+	    srrate += rrate[j]-old;
 	  }
+	}
 	
 	total_reactions++; /* counter */
 
@@ -156,6 +154,7 @@ void ssa(const PropensityFun *rfun,
 	if (errcode) {
 	  /* Report the error that occurred and exit. */
 	  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
+	  //printf("error code: %d", errcode);
 	  //report(k*Ncells+subvol,0,Nreplicas*Ncells,
 	  //	 0,total_reactions,errcode,report_level);
 	  break;
@@ -165,10 +164,9 @@ void ssa(const PropensityFun *rfun,
 	;
 	//report(k*Ncells+subvol,0,Nreplicas*Ncells,
 	//	       0,total_reactions,0,report_level);
+      FREE(rrate);
+      FREE(xx);
     }
     }
-
-  FREE(rrate);
-  FREE(xx);
 }
 /*----------------------------------------------------------------------*/
