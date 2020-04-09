@@ -39,7 +39,7 @@ end
 % default options
 optdef.openmp = true;
 optdef.define = '';
-optdef.include = '';
+optdef.include = 'urdmerng.h';
 optdef.link = '';
 optdef.source = '';
 
@@ -57,10 +57,12 @@ opts = optdef;
 if opts.openmp
   omp_link = '-lgomp';
   omp_cflags = '-fopenmp ';
+  omp_nthreads = 6;
 else
   omp_link = '';
   omp_cflags = '';
 end
+omp_define = strcat('-DOMPTHREADS=',num2str(omp_nthreads));
 
 % include and source directories
 include = {['-I' path] ['-I' path '../../include']};
@@ -76,7 +78,9 @@ source = {[path 'mexssa.c'] ...
           propensity_source ...
           [path 'ssa.c'] ...
           [path '../inline.c'] ...
-          [path '../report.c']};
+          [path '../report.c'] ...
+          [path '../urdmerng.c'] ...
+          };
 if ~isempty(opts.source)
   if ischar(opts.source)
     source = [source {opts.source}];
@@ -84,7 +88,8 @@ if ~isempty(opts.source)
     source = [source opts.source];
   end
 end
-define = [define '-DMALLOC\(n\)=mxMalloc\(n\) -DFREE\(p\)=mxFree\(p\) ' ...
+
+define = [define '-DMALLOC\(n\)=mxMalloc\(n\) -DFREE\(p\)=mxFree\(p\) ' omp_define ...
           opts.define];
 
 % mex extension
