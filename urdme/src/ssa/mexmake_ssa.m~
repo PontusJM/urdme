@@ -16,7 +16,7 @@ function mexmake_ssa(propensity_file,varargin)
 %   include      string              Include path.
 %   link         string              Linker path.
 
-% P. Melin 20120-04-09 (omp,rng definitions)
+
 % S. Engblom 2019-11-29 (Revision, make arguments)
 % S. Engblom 2017-02-22
 
