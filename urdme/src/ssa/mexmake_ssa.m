@@ -39,9 +39,11 @@ end
 % default options
 optdef.openmp = true;
 optdef.define = '';
-optdef.include = 'urdmerng.h';
+optdef.include = '';
 optdef.link = '';
 optdef.source = '';
+optdef.threads = 1;
+optdef.rng = 'DRAND48';
 
 % merge defaults with actual inputs
 if nargin > 1
@@ -53,23 +55,30 @@ if nargin > 1
 end
 opts = optdef;
 
+% Random number generator
+if opts.rng
+  rngdef = strcat('-DURDMERNG=',opts.rng);
+  define = [define rngdef ' '];
+end
+
 % OpenMP
 if opts.openmp
   omp_link = '-lgomp';
   omp_cflags = '-fopenmp ';
-  omp_nthreads = 6;
+  ompdef = strcat('-DOMPTHREADS=',num2str(optdef.threads));
+  define = [define ompdef ' '];
 else
   omp_link = '';
   omp_cflags = '';
 end
-omp_define = strcat('-DOMPTHREADS=',num2str(omp_nthreads));
+
+disp(define);
 
 % include and source directories
 include = {['-I' path] ['-I' path '../../include']};
 if ~isempty(opts.include)
   include = [include ['-I' opts.include]];
 end
-disp(path);
 link = {omp_link ['-L' path] ['-L' path '../']};
 if ~isempty(opts.link)
   link = [link ['-L' opts.link]];
@@ -89,7 +98,7 @@ if ~isempty(opts.source)
   end
 end
 
-define = [define '-DMALLOC\(n\)=mxMalloc\(n\) -DFREE\(p\)=mxFree\(p\) ' omp_define ...
+define = [define '-DMALLOC\(n\)=mxMalloc\(n\) -DFREE\(p\)=mxFree\(p\) ' ...
           opts.define];
 
 % mex extension

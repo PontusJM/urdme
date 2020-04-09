@@ -44,13 +44,12 @@ end
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
 
-%umod.D = sparse(zeros());
-
 umod.D = sparse(zeros(size(umod.D)));
 
-disp(umod.D);
-
 umod.solver = 'ssa';
+
+umod.threads = 4;
+umod.rng = 'RAND_R';
 
 % solve
 umod = urdme(umod,'seed',17,'report',0);
@@ -101,6 +100,8 @@ vmod.D = sparse(zeros(size(vmod.D)));
 
 vmod.solver = 'ssa';
 
+vmod.threads = 4;
+vmod.rng = 'RAND_R';
 
 profile on
 vmod = urdme(vmod,'seed',17,'report',0);

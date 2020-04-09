@@ -119,7 +119,9 @@ if nargin > 1 || ~isfield(umod,'parse') || umod.parse
                   'U',[], ...
                   'comsol',[], ...
                   'pde',[], ...
-                  'private',[]);
+                  'private',[], ...
+                  'threads', 1, ...
+                  'rng','');
   % required fields, no meaningful defaults:
   req = struct('tspan',[],'u0',[],'D',[],'N',[],'G',[],'vol',[],'sd',[]);
 
@@ -174,13 +176,16 @@ else
   l_info(umod.report,2,'Parsing turned off.\n');
 end
 
+% Add number of threads and rng options to makeargs
+umod.makeargs = {'threads','rng';
+                 umod.threads, umod.rng};
+             
 % (1) Compile the solver.
 if umod.compile
   % propensities, if any
   if ~isempty(umod.propensities) && ~any(umod.propensities == '.')
     umod.propensities = [umod.propensities '.c'];
   end
-  disp(umod.propensities);
   feval(['mexmake_' umod.solver],umod.propensities,umod.makeargs{:});
 else
   l_info(umod.report,2,'Compilation turned off.\n');
