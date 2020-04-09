@@ -1,6 +1,6 @@
 /* ssa.c - URDME SSA solver. */
 
-/* P. Melin   2020-04-08 (OpenMP support) */
+/* P. Melin   2020-04-08 (OpenMP support urdmerng integration) */
 /* S. Engblom 2019-11-15 (Nreplicas, multiple seeds syntax) */
 /* S. Engblom 2017-02-22 */
 
@@ -12,6 +12,7 @@
 #include "inline.h"
 #include "report.h"
 #include "ssa.h"
+#include "urdmerng.h"
 
 #if !defined(MALLOC) || !defined(FREE)
   #error "Must define MALLOC and FREE."
@@ -42,14 +43,23 @@ void ssa(const PropensityFun *rfun,
   const int event = -1; /* only reactions are handled by SSA */
   const size_t Ndofs = Ncells*Mspecies;
 
+  /* random number generator */
+  RngType rng_type;
+  
   /* reporter */
   ReportFun report = &URDMEreportFun;
   
   /* OpenMP settings */
-#if defined(_OPENMP)
-  omp_set_dynamic(0);
-  omp_set_num_threads(8);
-#endif
+  #if defined(_OPENMP) && defined(OMPTHREADS)
+  omp_set_num_threads(OMPTHREADS);
+  #endif
+
+  /* RNG settings */
+  #if defined(URDMERNG)
+  rng_type = URDMERNG;
+  #else
+  rng_type = DRAND48;
+  #endif
   
   /* Loop over Nreplicas cases. */
   for (int k = 0; k < Nreplicas; k++) {
@@ -57,9 +67,9 @@ void ssa(const PropensityFun *rfun,
     /* main loop over the (independent) cells */ 
     #pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
-
+      
       /* unique seed for each subvolume */
-      unsigned int seed = subvol;
+      rng_t *rng = init_rng(rng_type,subvol);
       
       size_t it = 0;
       double tt = tspan[0];
@@ -96,8 +106,8 @@ void ssa(const PropensityFun *rfun,
       /* Main simulation loop. */
       for ( ; ; ) {
 	/* time for next reaction */
-	//tt -= log(1.0-drand48())/srrate;
-	tt -= log(1.0-((double) rand_r(&seed)/ (double) RAND_MAX))/srrate;
+	tt -= log(1.0-rand_sample(rng))/srrate;
+	//tt -= log(1.0-((double) rand_r(&seed)/ (double) RAND_MAX))/srrate;
 	
 	/* Store solution if the global time counter tt has passed the
 	   next time in tspan. */
@@ -111,8 +121,7 @@ void ssa(const PropensityFun *rfun,
 	}
 	
 	/* a) Determine the reaction re that did occur. */
-	//const double rand = (drand48())*srrate;
-	const double rand = ((double) rand_r(&seed)/(double) RAND_MAX)*srrate;
+	const double rand = rand_sample(rng)*srrate;
 	double cum;
 	int re;
 	for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
