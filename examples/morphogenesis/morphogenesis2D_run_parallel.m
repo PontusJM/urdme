@@ -48,7 +48,7 @@ umod.D = sparse(zeros(size(umod.D)));
 
 umod.solver = 'ssa';
 
-umod.threads = 4;
+umod.solverargs = {'threads', 4};
 umod.rng = 'RAND_R';
 
 % solve
@@ -100,7 +100,9 @@ vmod.D = sparse(zeros(size(vmod.D)));
 
 vmod.solver = 'ssa';
 
-vmod.threads = 4;
+vmod.solverargs = {'threads', 4};
+
+
 vmod.rng = 'RAND_R';
 
 profile on

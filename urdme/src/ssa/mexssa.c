@@ -108,9 +108,8 @@ void mexFunction(int nlhs,mxArray *plhs[],int nrhs,const mxArray *prhs[])
     jcS = mxCalloc(M1+1,sizeof(mwIndex));
 
   /* Parse solver arguments */
-  if (!mxIsEmpty(mxSOLVEARGS))
-    mexErrMsgTxt("SSA does not accept any solver arguments");
-
+  int threads = *mxGetPr((mxGetCell(mxSOLVEARGS,1)));
+  
   /* Typecast from double to int. */
   int *u0 = mxMalloc(Ndofs*Nreplicas*sizeof(int));
   int *sd = mxMalloc(Ncells*sizeof(int));
@@ -147,7 +146,7 @@ void mexFunction(int nlhs,mxArray *plhs[],int nrhs,const mxArray *prhs[])
       dsize,
       report_level,seed_long,
       K,I,(const size_t *)jcS,prS,M1
-      );
+      ,threads);
   FREE_propensities(rfun);
 
   /* Deallocate. */

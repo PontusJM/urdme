@@ -32,7 +32,8 @@ void ssa(const PropensityFun *rfun,
 	 const size_t dsize,
 	 int report_level,const long *seed_long,
 	 const double *K,const int *I,
-	 const size_t *jcS,const int *prS,const size_t M1
+	 const size_t *jcS,const int *prS,const size_t M1,
+	 int threads
 	 )
 
 /* Specification of the inputs, see nsm.c */
@@ -42,23 +43,13 @@ void ssa(const PropensityFun *rfun,
   int errcode = 0;
   const int event = -1; /* only reactions are handled by SSA */
   const size_t Ndofs = Ncells*Mspecies;
-
-  /* random number generator */
-  RngType rng_type;
   
   /* reporter */
   ReportFun report = &URDMEreportFun;
   
   /* OpenMP settings */
-  #if defined(_OPENMP) && defined(OMPTHREADS)
-  omp_set_num_threads(OMPTHREADS);
-  #endif
-
-  /* RNG settings */
-  #if defined(URDMERNG)
-  rng_type = URDMERNG;
-  #else
-  rng_type = DRAND48;
+  #if defined(_OPENMP)
+  omp_set_num_threads(threads);
   #endif
   
   /* Loop over Nreplicas cases. */
@@ -69,7 +60,7 @@ void ssa(const PropensityFun *rfun,
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
       
       /* unique seed for each subvolume */
-      rng_t *rng = init_rng(rng_type,subvol);
+      rand_state_t *rng = init_rng(subvol);
       
       size_t it = 0;
       double tt = tspan[0];
@@ -106,7 +97,7 @@ void ssa(const PropensityFun *rfun,
       /* Main simulation loop. */
       for ( ; ; ) {
 	/* time for next reaction */
-	tt -= log(1.0-rand_sample(rng))/srrate;
+	tt -= log(1.0-sample_rng(rng))/srrate;
 	//tt -= log(1.0-((double) rand_r(&seed)/ (double) RAND_MAX))/srrate;
 	
 	/* Store solution if the global time counter tt has passed the
@@ -121,7 +112,7 @@ void ssa(const PropensityFun *rfun,
 	}
 	
 	/* a) Determine the reaction re that did occur. */
-	const double rand = rand_sample(rng)*srrate;
+	const double rand = sample_rng(rng)*srrate;
 	double cum;
 	int re;
 	for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;

@@ -43,7 +43,6 @@ optdef.define = '';
 optdef.include = '';
 optdef.link = '';
 optdef.source = '';
-optdef.threads = 1;
 optdef.rng = '';
 
 % merge defaults with actual inputs
@@ -66,8 +65,8 @@ end
 if opts.openmp
   omp_link = '-lgomp';
   omp_cflags = '-fopenmp ';
-  ompdef = strcat('-DOMPTHREADS=',num2str(optdef.threads));
-  define = [define ompdef ' '];
+  %ompdef = strcat('-DOMPTHREADS=',num2str(optdef.threads));
+  %define = [define ompdef ' '];
 else
   omp_link = '';
   omp_cflags = '';

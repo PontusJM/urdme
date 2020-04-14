@@ -120,7 +120,6 @@ if nargin > 1 || ~isfield(umod,'parse') || umod.parse
                   'comsol',[], ...
                   'pde',[], ...
                   'private',[], ...
-                  'threads', 1, ...
                   'rng','');
   % required fields, no meaningful defaults:
   req = struct('tspan',[],'u0',[],'D',[],'N',[],'G',[],'vol',[],'sd',[]);
@@ -176,9 +175,9 @@ else
   l_info(umod.report,2,'Parsing turned off.\n');
 end
 
-% Add number of threads and rng options to makeargs
-umod.makeargs = {'threads','rng';
-                 umod.threads, umod.rng};
+% Add rng options to makeargs
+umod.makeargs = {'rng';
+                umod.rng};
              
 % (1) Compile the solver.
 if umod.compile
