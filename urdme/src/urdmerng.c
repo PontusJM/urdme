@@ -3,14 +3,16 @@
 /* P. Melin 2020-04-09 */
 
 #include <stdlib.h>
+#include "mex.h"
 #include "urdmerng.h"
+#include <gsl/gsl_rng.h>
 
 rand_state_t *init_rng(unsigned int seed){
-  rand_state_t *rng = (rand_state_t *)malloc(sizeof(rand_state_t));
-  *rng = seed;
-  return rng;
+  rand_state_t *state = (rand_state_t *)MALLOC(sizeof(rand_state_t));
+  *state = seed;
+  return state;
 }
 
 void destroy_rng(rand_state_t *rng){
-  free(rng);
+  FREE(rng);
 }

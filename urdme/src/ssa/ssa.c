@@ -56,11 +56,14 @@ void ssa(const PropensityFun *rfun,
   for (int k = 0; k < Nreplicas; k++) {
     
     /* main loop over the (independent) cells */ 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
       
       /* unique seed for each subvolume */
+      //rand_state_t *rng = (rand_state_t *)MALLOC(sizeof(rand_state_t));
       rand_state_t *rng = init_rng(subvol);
+      
+      //rand_state_t rng = init_rng(subvol);
       
       size_t it = 0;
       double tt = tspan[0];
