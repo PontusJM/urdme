@@ -49,7 +49,7 @@ umod.D = sparse(zeros(size(umod.D)));
 umod.solver = 'ssa';
 
 umod.solverargs = {'threads', 4};
-umod.rng = 'RAND_R';
+umod.rng = 'GSL';
 
 % solve
 umod = urdme(umod,'seed',17,'report',0);
@@ -103,7 +103,7 @@ vmod.solver = 'ssa';
 vmod.solverargs = {'threads', 4};
 
 
-vmod.rng = 'RAND_R';
+vmod.rng = 'GSL';
 
 profile on
 vmod = urdme(vmod,'seed',17,'report',0);

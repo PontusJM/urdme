@@ -7,6 +7,7 @@
 #include <string.h>
 #include <math.h>
 #include <omp.h>
+#include <gsl/gsl_rng.h>
 
 #include "propensities.h"
 #include "inline.h"
