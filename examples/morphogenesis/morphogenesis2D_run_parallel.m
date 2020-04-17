@@ -49,6 +49,7 @@ umod.D = sparse(zeros(size(umod.D)));
 umod.solver = 'ssa';
 
 umod.solverargs = {'threads', 4};
+
 umod.rng = 'GSL';
 
 % solve
@@ -101,7 +102,6 @@ vmod.D = sparse(zeros(size(vmod.D)));
 vmod.solver = 'ssa';
 
 vmod.solverargs = {'threads', 4};
-
 
 vmod.rng = 'GSL';
 

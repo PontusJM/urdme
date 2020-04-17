@@ -34,3 +34,14 @@ void destroy_rng(rand_state_t *rng){
   }
   FREE(rng);
 }
+
+void rng_seed(rand_state_t *rng, unsigned int seed){
+  switch(URDMERNG){
+  case GSL:
+    gsl_rng_set(rng->gsl,seed);
+    break;
+  default:
+    *(rng->state) = seed;
+    break;
+  }
+}

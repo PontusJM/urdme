@@ -48,23 +48,29 @@ void ssa(const PropensityFun *rfun,
   /* reporter */
   ReportFun report = &URDMEreportFun;
   
-  /* OpenMP settings */
+  /* OpenMP */
   #if defined(_OPENMP)
   omp_set_num_threads(threads);
+  rand_state_t *rngs[threads];
+  for (int n = 0; n < threads; n++){
+    rngs[n] = init_rng(n);
+  }
   #endif
   
   /* Loop over Nreplicas cases. */
   for (int k = 0; k < Nreplicas; k++) {
     
+    /* Seed the rngs accordingly, unique seed for each rng */
+    for(int i = 0; i < threads; i++){
+      rng_seed(rngs[i],k+i);
+    }
+    
     /* main loop over the (independent) cells */ 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
       
-      /* unique seed for each subvolume */
-      //rand_state_t *rng = (rand_state_t *)MALLOC(sizeof(rand_state_t));
-      rand_state_t *rng = init_rng(subvol);
-      
-      //rand_state_t rng = init_rng(subvol);
+      /* Determine which rng to use */
+      rand_state_t *rng = rngs[omp_get_thread_num()];
       
       size_t it = 0;
       double tt = tspan[0];
@@ -178,6 +184,9 @@ void ssa(const PropensityFun *rfun,
       FREE(rrate);
       FREE(xx);
     }
-    }
+  }
+  for(int i = 0; i < threads; i++){
+    FREE(rngs[i]);
+  }
 }
 /*----------------------------------------------------------------------*/

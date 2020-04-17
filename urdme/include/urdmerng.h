@@ -29,3 +29,5 @@ rand_state_t *init_rng(unsigned int seed);
 
 /* Destroys a random number generator */
 void destroy_rng(rand_state_t *rng);
+
+void rng_seed(rand_state_t *rng, unsigned int seed);
