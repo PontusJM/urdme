@@ -62,7 +62,7 @@ void ssa(const PropensityFun *rfun,
     
     /* Seed the rngs accordingly, unique seed for each rng */
     for(int i = 0; i < threads; i++){
-      rng_seed(rngs[i],k+i);
+      rng_seed(rngs[i],seed_long[k]+i);
     }
     
     /* main loop over the (independent) cells */ 
