@@ -47,31 +47,43 @@ void ssa(const PropensityFun *rfun,
   
   /* reporter */
   ReportFun report = &URDMEreportFun;
+ 
+  /* if amount of threads is undefined, set to 1 */
+  if(!threads) threads = 1;
   
   /* OpenMP */
   #if defined(_OPENMP)
   omp_set_num_threads(threads);
+  #endif
+
+  /* Initiate rngs equal to the number of threads */
   rand_state_t *rngs[threads];
   for (int n = 0; n < threads; n++){
     rngs[n] = init_rng();
   }
-  #endif
-  
+
   /* Loop over Nreplicas cases. */
   for (int k = 0; k < Nreplicas; k++) {
     
     /* Seed the rngs accordingly, unique seed for each rng */
     for(int i = 0; i < threads; i++){
-      rng_seed(rngs[i],seed_long[k]+i);
+      seed_rng(rngs[i],seed_long[k]+i);
     }
-    
+
     /* main loop over the (independent) cells */ 
     #pragma omp parallel for
     for (size_t subvol = 0; subvol < Ncells; subvol++) {
+
+      /* random number generator */
+      rand_state_t *rng;
       
       /* Determine which rng to use */
-      rand_state_t *rng = rngs[omp_get_thread_num()];
-      
+      #if defined(_OPENMP)
+      rng = rngs[omp_get_thread_num()];
+      #else
+      rng = rngs[0];
+      #endif
+
       size_t it = 0;
       double tt = tspan[0];
 
@@ -108,7 +120,6 @@ void ssa(const PropensityFun *rfun,
       for ( ; ; ) {
 	/* time for next reaction */
 	tt -= log(1.0-sample_rng(rng))/srrate;
-	//tt -= log(1.0-((double) rand_r(&seed)/ (double) RAND_MAX))/srrate;
 	
 	/* Store solution if the global time counter tt has passed the
 	   next time in tspan. */
@@ -175,15 +186,15 @@ void ssa(const PropensityFun *rfun,
 	  //	 0,total_reactions,errcode,report_level);
 	  break;
 	}
-      }
+      } /* main sim end */
       if (report_level)
 	;
 	//report(k*Ncells+subvol,0,Nreplicas*Ncells,
 	//	       0,total_reactions,0,report_level);
       FREE(rrate);
       FREE(xx);
-    }
-  }
+    } /* Subvolume end */
+  } /* Replica end */
   /* Destroy the allocated rngs */
   for(int i = 0; i < threads; i++){
     destroy_rng(rngs[i]);
