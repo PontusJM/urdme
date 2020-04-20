@@ -53,7 +53,11 @@ void ssa(const PropensityFun *rfun,
   
   /* OpenMP */
   #if defined(_OPENMP)
+  /* calculate optimal chunk size */
+  omp_set_nested(false);
+  omp_set_max_active_levels(2);
   omp_set_num_threads(threads);
+  omp_set_dynamic(false);
   #endif
 
   /* Initiate rngs equal to the number of threads */
@@ -62,17 +66,25 @@ void ssa(const PropensityFun *rfun,
     rngs[n] = init_rng();
   }
 
+  /* testing purpose */
+  //int k = 1;
+  for(int i = 0; i < threads; i++){
+      seed_rng(rngs[i],seed_long[0]+i);
+  }
+
   /* Loop over Nreplicas cases. */
-  for (int k = 0; k < Nreplicas; k++) {
+  //#pragma omp parallel for num_threads(2)
+  //for (int k = 0; k < Nreplicas; k++) {
     
     /* Seed the rngs accordingly, unique seed for each rng */
-    for(int i = 0; i < threads; i++){
-      seed_rng(rngs[i],seed_long[k]+i);
-    }
+
 
     /* main loop over the (independent) cells */ 
     #pragma omp parallel for
-    for (size_t subvol = 0; subvol < Ncells; subvol++) {
+    for(size_t ij = 0; ij < 2*Ncells; ij++){
+      size_t subvol = ij / Ncells;
+      int k = (int) ij % Ncells;
+      //for (size_t subvol = 0; subvol < Ncells; subvol++) {
 
       /* random number generator */
       rand_state_t *rng;
@@ -117,7 +129,8 @@ void ssa(const PropensityFun *rfun,
       }
       
       /* Main simulation loop. */
-      for ( ; ; ) {
+      bool run = true;
+      while(run) {
 	/* time for next reaction */
 	tt -= log(1.0-sample_rng(rng))/srrate;
 	
@@ -126,10 +139,10 @@ void ssa(const PropensityFun *rfun,
 	if (tt >= tspan[it] || isinf(tt)) {
 	  for (; it < tlen && (tt >= tspan[it] || isinf(tt)); it++)
 	    memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
-	  
+	    
 	  /* If the simulation has reached the final time, continue to
 	     next subvolume. */
-	  if (it >= tlen) break;
+	  if (it >= tlen) run = false;
 	}
 	
 	/* a) Determine the reaction re that did occur. */
@@ -181,10 +194,11 @@ void ssa(const PropensityFun *rfun,
 	/* Check for error codes. */
 	if (errcode) {
 	  /* Report the error that occurred and exit. */
-	  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
+	  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int)); 
 	  //report(k*Ncells+subvol,0,Nreplicas*Ncells,
 	  //	 0,total_reactions,errcode,report_level);
-	  break;
+	  run = false;
+	  //break;
 	}
       } /* main sim end */
       if (report_level)
@@ -194,10 +208,10 @@ void ssa(const PropensityFun *rfun,
       FREE(rrate);
       FREE(xx);
     } /* Subvolume end */
-  } /* Replica end */
+    //} /* Replica end */
   /* Destroy the allocated rngs */
-  for(int i = 0; i < threads; i++){
-    destroy_rng(rngs[i]);
-  }
+  //for(int i = 0; i < threads; i++){
+    //destroy_rng(rngs[i]);
+    //}
 }
 /*----------------------------------------------------------------------*/
