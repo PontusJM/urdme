@@ -53,7 +53,7 @@ void ssa(const PropensityFun *rfun,
   omp_set_num_threads(threads);
   rand_state_t *rngs[threads];
   for (int n = 0; n < threads; n++){
-    rngs[n] = init_rng(n);
+    rngs[n] = init_rng();
   }
   #endif
   
@@ -171,7 +171,6 @@ void ssa(const PropensityFun *rfun,
 	if (errcode) {
 	  /* Report the error that occurred and exit. */
 	  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
-	  //printf("error code: %d", errcode);
 	  //report(k*Ncells+subvol,0,Nreplicas*Ncells,
 	  //	 0,total_reactions,errcode,report_level);
 	  break;
@@ -185,8 +184,9 @@ void ssa(const PropensityFun *rfun,
       FREE(xx);
     }
   }
+  /* Destroy the allocated rngs */
   for(int i = 0; i < threads; i++){
-    FREE(rngs[i]);
+    destroy_rng(rngs[i]);
   }
 }
 /*----------------------------------------------------------------------*/
