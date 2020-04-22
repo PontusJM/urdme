@@ -58,7 +58,7 @@ void ssa(const PropensityFun *rfun,
   omp_set_num_threads(threads);
   #endif
 
-  /* Initiate rngs equal to the number of threads */
+  /* Initiate threads amount of rngs */
   rand_state_t *rngs[threads];
   for (int n = 0; n < threads; n++){
     rngs[n] = init_rng();
@@ -66,10 +66,10 @@ void ssa(const PropensityFun *rfun,
 
   /* main loop over the (independent) chunks */ 
   #pragma omp parallel for
-  for(size_t pair = 0; pair < Nreplicas*Ncells; pair++){
+  for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
     
-    size_t subvol = (size_t) pair % Ncells;
-    int k = (int) pair / Ncells;
+    size_t subvol = (size_t) ij % Ncells;
+    int k = (int) ij / Ncells;
     
     /* random number generator */
     rand_state_t *rng;
