@@ -64,11 +64,12 @@ void ssa(const PropensityFun *rfun,
     rngs[n] = init_rng();
   }
 
-  /* main loop over the (independent) chunks */ 
-  #pragma omp parallel for
+  /* main loop over the (independent) units of work */ 
+  #pragma omp parallel for shared(total_reactions)
   for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
-    
+    /* determine which subvolume to compute  */
     size_t subvol = (size_t) ij % Ncells;
+    /* determine which replica we are in */
     int k = (int) ij / Ncells;
     
     /* random number generator */
@@ -81,7 +82,7 @@ void ssa(const PropensityFun *rfun,
     rng = rngs[0];
     #endif
 
-    /* seeds the rng uniquely for each replica-subvolume pair */
+    /* seeds the rng uniquely for each unit of work */
     seed_rng(rng,seed_long[k]+subvol);
     
     size_t it = 0;
