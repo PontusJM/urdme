@@ -25,9 +25,9 @@ typedef union rand_state_t{
 #endif
 
 /* Initializes a random number generator with seed */
-rand_state_t *init_rng(unsigned int seed);
+rand_state_t *init_rng();
 
 /* Destroys a random number generator */
 void destroy_rng(rand_state_t *rng);
 
-void rng_seed(rand_state_t *rng, unsigned int seed);
+void seed_rng(rand_state_t *rng, unsigned int seed);
