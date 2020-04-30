@@ -61,9 +61,9 @@ void ssa(const PropensityFun *rfun,
   /* Initiate threads amount of rngs */
   rand_state_t *rngs[threads];
   for (int n = 0; n < threads; n++){
-    rngs[n] = init_rng();
+    rngs[n] = init_rng(Nreplicas);
   }
-
+  
   /* main loop over the (independent) units of work */ 
   #pragma omp parallel for shared(total_reactions)
   for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
@@ -82,8 +82,8 @@ void ssa(const PropensityFun *rfun,
     rng = rngs[0];
     #endif
 
-    /* seeds the rng uniquely for each unit of work */
-    seed_rng(rng,seed_long[k]+subvol);
+    /* reseed if we moved to a new replica */
+    if(!is_initialized(rng,k)) seed_rng(rng,seed_long[k],k);
     
     size_t it = 0;
     double tt = tspan[0];
@@ -118,7 +118,7 @@ void ssa(const PropensityFun *rfun,
     /* Main simulation loop. */
     for(; ;) {
       /* time for next reaction */
-      tt -= log(1.0-sample_rng(rng))/srrate;
+      tt -= log(1.0-sample_rng(rng,k))/srrate;
       
       /* Store solution if the global time counter tt has passed the
 	 next time in tspan. */
@@ -132,7 +132,7 @@ void ssa(const PropensityFun *rfun,
       }
       
       /* a) Determine the reaction re that did occur. */
-      const double rand = sample_rng(rng)*srrate;
+      const double rand = sample_rng(rng,k)*srrate;
       double cum;
       int re;
       for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
@@ -182,19 +182,24 @@ void ssa(const PropensityFun *rfun,
       if (errcode) {
 	/* Report the error that occurred and exit. */
 	memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int)); 
-	//report(k*Ncells+subvol,0,Nreplicas*Ncells,
-	//	 0,total_reactions,errcode,report_level);
+	#pragma omp critical
+	{
+	report(k*Ncells+subvol,0,Nreplicas*Ncells,
+		 0,total_reactions,errcode,report_level);
+	}
 	break;
       }
-    } /* main sim end */
-    if (report_level)
-      ;
-    //report(k*Ncells+subvol,0,Nreplicas*Ncells,
-    //	       0,total_reactions,0,report_level);
+    }
+    if (report_level){
+      #pragma omp critical
+      {
+      report(k*Ncells+subvol,0,Nreplicas*Ncells,
+    	       0,total_reactions,0,report_level);
+      }
+    }
     FREE(rrate);
     FREE(xx);
-  } /* Chunk end */
-  /* Destroy the allocated rngs */
+  }
   for(int i = 0; i < threads; i++){
     destroy_rng(rngs[i]);
   }

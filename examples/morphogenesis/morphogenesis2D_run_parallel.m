@@ -1,3 +1,4 @@
+
 %Morphogenesis 2D script file.
 %   This file runs the Schnakenberg and the Brusselator models in
 %   simple 2D geometries.
@@ -10,6 +11,19 @@
 
 %% (1) Schnakenberg
 
+minthreads = 1;
+maxthreads = 12;
+
+
+%options for profiling (pontus)
+%for nthreads = [1,2,4,6,8,10,12]
+%    for rng = {'DRAND48','GSL','RAND_R'}
+nthreads = 2;
+replicas = 2;
+rng = 'GSL'
+
+    run = strcat('Running with ', rng, ' threads: ', string(nthreads));
+    disp(run)
 % build the geometry
 C1 = [1 0 0 50]';
 C2 = [1 0 0 15]';
@@ -33,13 +47,13 @@ end
 % not used
 umod.sd = ceil(umod.sd);
 
-if ~exist('plotting_off','var') || ~plotting_off
-  figure(1), clf,
-  pdegplot(G,'subdomainlabels','on'), axis equal
-
-  figure(2), clf,
-  pdemesh(P,E,T), axis tight, axis equal
-end
+%if ~exist('plotting_off','var') || ~plotting_off
+%  figure(1), clf,
+%  pdegplot(G,'subdomainlabels','on'), axis equal
+%
+%  figure(2), clf,
+%  pdemesh(P,E,T), axis tight, axis equal
+%end
 
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
@@ -48,25 +62,37 @@ umod.D = sparse(zeros(size(umod.D)));
 
 umod.solver = 'ssa';
 
-umod.solverargs = {'threads', 4};
+umod.solverargs = {'threads', nthreads};
 
-umod.rng = 'GSL';
+umod.rng = rng;
+
+umod.seed = 1:replicas;
+
+%umod.seed = [ 1,2 ];
+if(replicas > 1)
+    copy = umod.u0;
+    for r = 1:replicas-1
+    umod.u0 = cat(3, umod.u0, copy);
+    end
+end
+
 
 % solve
-umod = urdme(umod,'seed',17,'report',0);
+profile on
+umod = urdme(umod,'report',0);
 
 % visualize using PDE Toolbox
-umod = urdme2pde(umod);
-if ~exist('plotting_off','var') || ~plotting_off
-  figure(3), clf,
-  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
-  title('Schnakenberg: Concentration U');
-  view(0,90), axis tight, axis square, colormap('parula')
-  figure(4), clf,
-  h = pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(2,:,end)');
-  title('Schnakenberg: Concentration V');
-  view(0,90), axis tight, axis square, colormap('parula')
-end
+%umod = urdme2pde(umod);
+%if ~exist('plotting_off','var') || ~plotting_off
+%  figure(3), clf,
+%  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
+%  title('Schnakenberg: Concentration U');
+%  view(0,90), axis tight, axis square, colormap('parula')
+%  figure(4), clf,
+%  h = pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(2,:,end)');
+%  title('Schnakenberg: Concentration V');
+%  view(0,90), axis tight, axis square, colormap('parula')
+%end
 
 %% (2) Brusselator
 
@@ -101,13 +127,43 @@ vmod.D = sparse(zeros(size(vmod.D)));
 
 vmod.solver = 'ssa';
 
-vmod.solverargs = {'threads', 4};
+vmod.solverargs = {'threads', nthreads};
 
-vmod.rng = 'GSL';
+vmod.rng = rng;
 
-profile on
-vmod = urdme(vmod,'seed',17,'report',0);
-profsave
+vmod.seed = 1:replicas;
+
+if(replicas > 1)
+    copy = vmod.u0;
+    for r = 1:replicas-1
+    vmod.u0 = cat(3, vmod.u0, copy);
+    end
+end
+
+vmod = urdme(vmod,'report',0);
+
+savestring = strcat('profile_results_sameseed/',rng,'_',string(nthreads),'.mat');
+p = profile('info');
+save(savestring,'p');
+%  end
+%end
+
+return;
+
+cd profile_results
+
+for i = minthreads:maxthreads
+    for rng = {'RAND_R','DRAND48','GSL'}
+    loadstring = strcat(rng,'_',string(i),'.mat');
+    load(loadstring);
+    filestring = strcat(rng,'_',string(i));
+    profsave(p,filestring);
+    clear p;
+    end
+end
+        
+
+return;
 
 % visualize using PDE Toolbox
 vmod = urdme2pde(vmod);

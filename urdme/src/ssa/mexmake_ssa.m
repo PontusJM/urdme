@@ -62,10 +62,8 @@ rng_link2 = '';
 if opts.rng
   rngdef = strcat('-DURDMERNG=',opts.rng);
   define = [define rngdef ' '];
-  if opts.rng == 'GSL'
-      rng_link1 = '-lgsl';
-      rng_link2 = '-lgslcblas';
-  end
+  rng_link1 = '-lgsl';
+  rng_link2 = '-lgslcblas';
 end
 
 
