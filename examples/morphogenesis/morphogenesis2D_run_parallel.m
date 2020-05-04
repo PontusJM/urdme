@@ -15,10 +15,10 @@ maxthreads = 12;
 
 
 %options for profiling (pontus)
-for nthreads = [3,12]
-    %for rng = {'DRAND48','GSL','RAND_R'}
-    rng = 'GSL'
-    replicas = 6;
+for nthreads = [1,2,4,6,8,10,12]
+    for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS1','GSL_RANLXS2' }
+    rng = 'GSL_RANLXS2';
+    replicas = 4;
 
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
@@ -134,7 +134,7 @@ vmod = urdme(vmod,'report',0);
 savestring = strcat('profile_results/',rng,'_',string(nthreads),'.mat');
 p = profile('info');
 save(savestring,'p');
-%  end
+  end
 end
 
 return;
