@@ -10,17 +10,15 @@
 % S. Engblom 2017-03-08
 
 %% (1) Schnakenberg
-
 minthreads = 1;
 maxthreads = 12;
 
 
 %options for profiling (pontus)
-%for nthreads = [1,2,4,6,8,10,12]
-%    for rng = {'DRAND48','GSL','RAND_R'}
-nthreads = 2;
-replicas = 2;
-rng = 'GSL'
+for nthreads = [3,12]
+    %for rng = {'DRAND48','GSL','RAND_R'}
+    rng = 'GSL'
+    replicas = 6;
 
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
@@ -68,14 +66,12 @@ umod.rng = rng;
 
 umod.seed = 1:replicas;
 
-%umod.seed = [ 1,2 ];
 if(replicas > 1)
     copy = umod.u0;
     for r = 1:replicas-1
     umod.u0 = cat(3, umod.u0, copy);
     end
 end
-
 
 % solve
 profile on
@@ -95,7 +91,6 @@ umod = urdme(umod,'report',0);
 %end
 
 %% (2) Brusselator
-
 % build the geometry
 C1 = [1 0 0 25]';
 gd = [C1];
@@ -120,19 +115,11 @@ vmod.sd = ceil(vmod.sd);
 
 vmod = brusselator(vmod);
 vmod.vol = 100/mean(vmod.vol)*vmod.vol;
-
-% solve
-
 vmod.D = sparse(zeros(size(vmod.D)));
-
 vmod.solver = 'ssa';
-
 vmod.solverargs = {'threads', nthreads};
-
 vmod.rng = rng;
-
 vmod.seed = 1:replicas;
-
 if(replicas > 1)
     copy = vmod.u0;
     for r = 1:replicas-1
@@ -140,13 +127,15 @@ if(replicas > 1)
     end
 end
 
+%solve
 vmod = urdme(vmod,'report',0);
 
-savestring = strcat('profile_results_sameseed/',rng,'_',string(nthreads),'.mat');
+%save profiling info
+savestring = strcat('profile_results/',rng,'_',string(nthreads),'.mat');
 p = profile('info');
 save(savestring,'p');
 %  end
-%end
+end
 
 return;
 

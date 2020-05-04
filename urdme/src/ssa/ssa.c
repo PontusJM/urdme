@@ -39,6 +39,7 @@ void ssa(const PropensityFun *rfun,
 
 /* Specification of the inputs, see nsm.c */
 {
+  
   /* stats */
   long int total_reactions = 0;
   int errcode = 0;
@@ -53,153 +54,159 @@ void ssa(const PropensityFun *rfun,
   
   /* OpenMP */
   #if defined(_OPENMP)
-  omp_set_nested(false);
   omp_set_dynamic(false);
   omp_set_num_threads(threads);
   #endif
-
+  
   /* Initiate threads amount of rngs */
   rand_state_t *rngs[threads];
   for (int n = 0; n < threads; n++){
-    rngs[n] = init_rng(Nreplicas);
+    rngs[n] = init_rng();
   }
-  
+
   /* main loop over the (independent) units of work */ 
-  #pragma omp parallel for shared(total_reactions)
-  for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
-    /* determine which subvolume to compute  */
-    size_t subvol = (size_t) ij % Ncells;
-    /* determine which replica we are in */
-    int k = (int) ij / Ncells;
-    
-    /* random number generator */
-    rand_state_t *rng;
-    
-    /* Determine which rng to use */
-    #if defined(_OPENMP)
-    rng = rngs[omp_get_thread_num()];
-    #else
-    rng = rngs[0];
-    #endif
-
-    /* reseed if we moved to a new replica */
-    if(!is_initialized(rng,k)) seed_rng(rng,seed_long[k],k);
-    
-    size_t it = 0;
-    double tt = tspan[0];
-    
-    /* allocate state vector */
-    int *xx = (int *)MALLOC(Mspecies*sizeof(int));
-    /* allocate reaction rate vector */
-    double *rrate = (double *)MALLOC(Mreactions*sizeof(double));
-    /* sum of reaction rates */
-    double srrate;
-    
-    /* Set (xx,tt) to the initial state. */
-    memcpy(xx,&u0[Mspecies*subvol+k*Ndofs],Mspecies*sizeof(int));
-    
-    /* Calculate the propensity for every reaction. Store the sum of
-       the reaction intensities in srrate. */
-    size_t j;
-    srrate = 0.0;
-    for (j = 0; j < M1; j++) {
-      double temp = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]],
-			       jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
-      rrate[j] = temp;
-      srrate += rrate[j];
-    }
-    for (; j < Mreactions; j++) {
-      double temp =  (*rfun[j-M1])(xx,tt,vol[subvol],
-				   &ldata[subvol*dsize],gdata,sd[subvol]);
-      rrate[j] = temp;
-      srrate += rrate[j];
-    }
-    
-    /* Main simulation loop. */
-    for(; ;) {
-      /* time for next reaction */
-      tt -= log(1.0-sample_rng(rng,k))/srrate;
-      
-      /* Store solution if the global time counter tt has passed the
-	 next time in tspan. */
-      if (tt >= tspan[it] || isinf(tt)) {
-	for (; it < tlen && (tt >= tspan[it] || isinf(tt)); it++)
-	  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
-	
-	/* If the simulation has reached the final time, continue to
-	   next subvolume. */
-	if (it >= tlen) break;
-      }
-      
-      /* a) Determine the reaction re that did occur. */
-      const double rand = sample_rng(rng,k)*srrate;
-      double cum;
-      int re;
-      for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
-	   cum += rrate[++re]);
-      
-      /* elaborate floating point fix: */
-      if (re >= Mreactions) re = Mreactions-1;
-      if (rrate[re] == 0.0) {
-	/* go backwards and try to find first nonzero reaction rate */
-	for ( ; re > 0 && rrate[re] == 0.0; re--);
-	
-	/* No nonzero rate found, but a reaction was sampled. This can
-	   happen due to floating point errors in the iterated
-	   recalculated rates. */
-	if (rrate[re] == 0.0) {
-	  /* nil event: zero out and move on */
-	  srrate = 0.0;
-	  goto next_event;
-	}
-      }
-      
-      /* b) Update the state of the subvolume. */
-      for (int i = jcN[re]; i < jcN[re+1]; i++) {
-	xx[irN[i]] += prN[i];
-	if (xx[irN[i]] < 0) errcode = 1;
-      }
-      
-      /* c) Recalculate srrate and rrate using dependency graph. */
-      for (int i = jcG[Mspecies+re]; i < jcG[Mspecies+re+1]; i++) {
-	const int j = irG[i];
-	const double old = rrate[j];
-	if (j < M1){
-	  rrate[j] = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]], jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
-	  srrate += rrate[j]-old;
-	}
-	else{
-	  rrate[j] = (*rfun[j-M1])(xx,tt,vol[subvol], &ldata[subvol*dsize], gdata,sd[subvol]);
-	  srrate += rrate[j]-old;
-	}
-      }
-
-      #pragma omp atomic
-      total_reactions++; /* counter */
-      
-    next_event:
-      /* Check for error codes. */
-      if (errcode) {
-	/* Report the error that occurred and exit. */
-	memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int)); 
-	#pragma omp critical
-	{
-	report(k*Ncells+subvol,0,Nreplicas*Ncells,
-		 0,total_reactions,errcode,report_level);
-	}
-	break;
-      }
-    }
-    if (report_level){
-      #pragma omp critical
+  #pragma omp parallel shared(total_reactions)
+  {
+    for(int k = 0; k < Nreplicas; k++){
+      #pragma omp single
       {
-      report(k*Ncells+subvol,0,Nreplicas*Ncells,
-    	       0,total_reactions,0,report_level);
-      }
-    }
-    FREE(rrate);
-    FREE(xx);
-  }
+	for(int i = 0; i < threads; i++){
+	  seed_rng(rngs[i],k);
+	}
+	for(size_t subvol = 0; subvol < Ncells; subvol++){
+	  /* Task to be divided amongst threads */
+          #pragma omp task
+	  {
+	    
+	    /* random number generator */
+	    rand_state_t *rng;
+	    
+	    /* Determine which rng to use */
+            #if defined(_OPENMP)
+	    rng = rngs[omp_get_thread_num()];
+            #else
+	    rng = rngs[0];
+            #endif
+	
+	    size_t it = 0;
+	    double tt = tspan[0];
+	    
+	    /* allocate state vector */
+	    int *xx = (int *)MALLOC(Mspecies*sizeof(int));
+	    /* allocate reaction rate vector */
+	    double *rrate = (double *)MALLOC(Mreactions*sizeof(double));
+	    /* sum of reaction rates */
+	    double srrate;
+	    
+	    /* Set (xx,tt) to the initial state. */
+	    memcpy(xx,&u0[Mspecies*subvol+k*Ndofs],Mspecies*sizeof(int));
+	    
+	    /* Calculate the propensity for every reaction. Store the sum of
+	       the reaction intensities in srrate. */
+	    size_t j;
+	    srrate = 0.0;
+	    for (j = 0; j < M1; j++) {
+	      double temp = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]],
+				       jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
+	      rrate[j] = temp;
+	      srrate += rrate[j];
+	    }
+	    for (; j < Mreactions; j++) {
+	      double temp =  (*rfun[j-M1])(xx,tt,vol[subvol],
+					   &ldata[subvol*dsize],gdata,sd[subvol]);
+	      rrate[j] = temp;
+	      srrate += rrate[j];
+	    }
+	    
+	    /* Main simulation loop. */
+	    for(; ;) {
+	      /* time for next reaction */
+	      tt -= log(1.0-sample_rng(rng))/srrate;
+	      
+	      /* Store solution if the global time counter tt has passed the
+		 next time in tspan. */
+	      if (tt >= tspan[it] || isinf(tt)) {
+		for (; it < tlen && (tt >= tspan[it] || isinf(tt)); it++)
+		  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
+		
+		/* If the simulation has reached the final time, continue to
+		   next subvolume. */
+		if (it >= tlen) break;
+	      }
+	      
+	      /* a) Determine the reaction re that did occur. */
+	      const double rand = sample_rng(rng)*srrate;
+	      double cum;
+	      int re;
+	      for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
+		   cum += rrate[++re]);
+	      
+	      /* elaborate floating point fix: */
+	      if (re >= Mreactions) re = Mreactions-1;
+	      if (rrate[re] == 0.0) {
+		/* go backwards and try to find first nonzero reaction rate */
+		for ( ; re > 0 && rrate[re] == 0.0; re--);
+		
+		/* No nonzero rate found, but a reaction was sampled. This can
+		   happen due to floating point errors in the iterated
+		   recalculated rates. */
+		if (rrate[re] == 0.0) {
+		  /* nil event: zero out and move on */
+		  srrate = 0.0;
+		  goto next_event;
+		}
+	      }
+	      
+	      /* b) Update the state of the subvolume. */
+	      for (int i = jcN[re]; i < jcN[re+1]; i++) {
+		xx[irN[i]] += prN[i];
+		if (xx[irN[i]] < 0) errcode = 1;
+	      }
+	      
+	      /* c) Recalculate srrate and rrate using dependency graph. */
+	      for (int i = jcG[Mspecies+re]; i < jcG[Mspecies+re+1]; i++) {
+		const int j = irG[i];
+		const double old = rrate[j];
+		if (j < M1){
+		  rrate[j] = inlineProp(xx,&K[j*3],&I[j*3],&prS[jcS[j]], jcS[j+1]-jcS[j],vol[subvol],sd[subvol]);
+		  srrate += rrate[j]-old;
+		}
+		else{
+		  rrate[j] = (*rfun[j-M1])(xx,tt,vol[subvol], &ldata[subvol*dsize], gdata,sd[subvol]);
+		  srrate += rrate[j]-old;
+		}
+	      }
+	      
+              #pragma omp atomic
+	      total_reactions++; /* counter */
+	      
+	    next_event:
+	      /* Check for error codes. */
+	      if (errcode) {
+		/* Report the error that occurred and exit. */
+		memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int)); 
+                #pragma omp critical
+		{
+		  report(k*Ncells+subvol,0,Nreplicas*Ncells,
+			 0,total_reactions,errcode,report_level);
+		}
+		break;
+	      }
+	      if (report_level){
+                #pragma omp critical
+		{
+		  report(k*Ncells+subvol,0,Nreplicas*Ncells,
+			 0,total_reactions,0,report_level);
+		}
+	      }
+	    }/* main sim end */
+	    FREE(rrate);
+	    FREE(xx);
+	  } /* task end */
+	} /* subvol end */
+      } /* single end */
+    } /* Replica end */
+  } /* parallel end */
   for(int i = 0; i < threads; i++){
     destroy_rng(rngs[i]);
   }
