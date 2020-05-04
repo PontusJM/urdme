@@ -67,27 +67,16 @@ void ssa(const PropensityFun *rfun,
   /* main loop over the (independent) units of work */ 
   #pragma omp parallel shared(total_reactions)
   {
-    for(int k = 0; k < Nreplicas; k++){
-      #pragma omp single
-      {
-	for(int i = 0; i < threads; i++){
-	  seed_rng(rngs[i],k);
-	}
+    #pragma omp single
+    {
+      for(int k = 0; k < Nreplicas; k++){
+	rand_state_t *rng = init_rng();
 	for(size_t subvol = 0; subvol < Ncells; subvol++){
-	  /* Task to be divided amongst threads */
-          #pragma omp task
+	  double r1 = sample_rng(rng);
+	  double r2 = sample_rng(rng);
+	  mexPrintf("In replica %d, subvol %ld my RNGS r1 = %f and r2 = %f\n",k,subvol,r1,r2);
+#pragma omp task firstprivate(r1,r2,k,subvol)
 	  {
-	    
-	    /* random number generator */
-	    rand_state_t *rng;
-	    
-	    /* Determine which rng to use */
-            #if defined(_OPENMP)
-	    rng = rngs[omp_get_thread_num()];
-            #else
-	    rng = rngs[0];
-            #endif
-	
 	    size_t it = 0;
 	    double tt = tspan[0];
 	    
@@ -121,7 +110,7 @@ void ssa(const PropensityFun *rfun,
 	    /* Main simulation loop. */
 	    for(; ;) {
 	      /* time for next reaction */
-	      tt -= log(1.0-sample_rng(rng))/srrate;
+	      tt -= log(1.0-r1)/srrate;
 	      
 	      /* Store solution if the global time counter tt has passed the
 		 next time in tspan. */
@@ -131,11 +120,13 @@ void ssa(const PropensityFun *rfun,
 		
 		/* If the simulation has reached the final time, continue to
 		   next subvolume. */
-		if (it >= tlen) break;
+		if (it >= tlen) {
+		  break;
+		}
 	      }
 	      
 	      /* a) Determine the reaction re that did occur. */
-	      const double rand = sample_rng(rng)*srrate;
+	      const double rand = r2*srrate;
 	      double cum;
 	      int re;
 	      for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
@@ -204,11 +195,10 @@ void ssa(const PropensityFun *rfun,
 	    FREE(xx);
 	  } /* task end */
 	} /* subvol end */
-      } /* single end */
-    } /* Replica end */
+      } /* replica end */
+      //destroy_rng(rng);
+      #pragma omp taskwait
+    } /* single end */
   } /* parallel end */
-  for(int i = 0; i < threads; i++){
-    destroy_rng(rngs[i]);
-  }
 }
 /*----------------------------------------------------------------------*/
