@@ -17,9 +17,9 @@ maxthreads = 12;
 %options for profiling (pontus)
 %for nthreads = [1,2,4,6,8,10,12]
 %    for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS1','GSL_RANLXS2' }
-nthreads = 6;
+nthreads = 9;
 rng = 'RAND_R';
-    replicas = 1;
+    replicas = 3;
 
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
@@ -46,13 +46,13 @@ end
 % not used
 umod.sd = ceil(umod.sd);
 
-%if ~exist('plotting_off','var') || ~plotting_off
-%  figure(1), clf,
-%  pdegplot(G,'subdomainlabels','on'), axis equal
-%
-%  figure(2), clf,
-%  pdemesh(P,E,T), axis tight, axis equal
-%end
+if ~exist('plotting_off','var') || ~plotting_off
+  figure(1), clf,
+  pdegplot(G,'subdomainlabels','on'), axis equal
+
+  figure(2), clf,
+  pdemesh(P,E,T), axis tight, axis equal
+end
 
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
@@ -79,17 +79,17 @@ profile on
 umod = urdme(umod,'report',0);
 
 % visualize using PDE Toolbox
-%umod = urdme2pde(umod);
-%if ~exist('plotting_off','var') || ~plotting_off
-%  figure(3), clf,
-%  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
-%  title('Schnakenberg: Concentration U');
-%  view(0,90), axis tight, axis square, colormap('parula')
-%  figure(4), clf,
-%  h = pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(2,:,end)');
-%  title('Schnakenberg: Concentration V');
-%  view(0,90), axis tight, axis square, colormap('parula')
-%end
+umod = urdme2pde(umod);
+if ~exist('plotting_off','var') || ~plotting_off
+  figure(3), clf,
+  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
+  title('Schnakenberg: Concentration U');
+  view(0,90), axis tight, axis square, colormap('parula')
+  figure(4), clf,
+  h = pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(2,:,end)');
+  title('Schnakenberg: Concentration V');
+  view(0,90), axis tight, axis square, colormap('parula')
+end
 
 %% (2) Brusselator
 % build the geometry
@@ -132,8 +132,9 @@ end
 vmod = urdme(vmod,'report',0);
 
 %save profiling info
-savestring = strcat('profile_results/',rng,'_',string(nthreads),'.mat');
+%savestring = strcat('profile_results/',rng,'_',string(nthreads),'.mat');
 p = profile('info');
+profsave(p,'profres');
 %save(savestring,'p');
 %  end
 %end

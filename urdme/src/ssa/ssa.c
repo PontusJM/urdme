@@ -38,8 +38,7 @@ void ssa(const PropensityFun *rfun,
 	 )
 
 /* Specification of the inputs, see nsm.c */
-{
-  
+{ 
   /* stats */
   long int total_reactions = 0;
   int errcode = 0;
@@ -54,28 +53,18 @@ void ssa(const PropensityFun *rfun,
   
   /* OpenMP */
   #if defined(_OPENMP)
-  omp_set_dynamic(false);
   omp_set_num_threads(threads);
   #endif
   
-  /* Initiate threads amount of rngs */
-  rand_state_t *rngs[threads];
-  for (int n = 0; n < threads; n++){
-    rngs[n] = init_rng();
-  }
-
   /* main loop over the (independent) units of work */ 
   #pragma omp parallel shared(total_reactions)
   {
-    #pragma omp single
-    {
-      for(int k = 0; k < Nreplicas; k++){
+    #pragma omp for
+    for(int k = 0; k < Nreplicas; k++){
 	rand_state_t *rng = init_rng();
+	seed_rng(rng,seed_long[k]);
 	for(size_t subvol = 0; subvol < Ncells; subvol++){
-	  double r1 = sample_rng(rng);
-	  double r2 = sample_rng(rng);
-	  mexPrintf("In replica %d, subvol %ld my RNGS r1 = %f and r2 = %f\n",k,subvol,r1,r2);
-#pragma omp task firstprivate(r1,r2,k,subvol)
+          #pragma omp task if(threads < Nreplicas) depend(out : rng)
 	  {
 	    size_t it = 0;
 	    double tt = tspan[0];
@@ -110,25 +99,24 @@ void ssa(const PropensityFun *rfun,
 	    /* Main simulation loop. */
 	    for(; ;) {
 	      /* time for next reaction */
-	      tt -= log(1.0-r1)/srrate;
+	      tt -= log(1.0-sample_rng(rng))/srrate;
 	      
 	      /* Store solution if the global time counter tt has passed the
 		 next time in tspan. */
 	      if (tt >= tspan[it] || isinf(tt)) {
-		for (; it < tlen && (tt >= tspan[it] || isinf(tt)); it++)
-		  memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
-		
+		for (; it < tlen && (tt >= tspan[it] || isinf(tt)); it++){
+		memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));
+	      }
 		/* If the simulation has reached the final time, continue to
 		   next subvolume. */
-		if (it >= tlen) {
-		  break;
-		}
+	        if (it >= tlen) break;
 	      }
 	      
 	      /* a) Determine the reaction re that did occur. */
-	      const double rand = r2*srrate;
+	      const double rand = sample_rng(rng)*srrate;
 	      double cum;
 	      int re;
+
 	      for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;
 		   cum += rrate[++re]);
 	      
@@ -167,38 +155,31 @@ void ssa(const PropensityFun *rfun,
 		  srrate += rrate[j]-old;
 		}
 	      }
-	      
-              #pragma omp atomic
+
+	      #pragma omp atomic
 	      total_reactions++; /* counter */
 	      
 	    next_event:
 	      /* Check for error codes. */
 	      if (errcode) {
 		/* Report the error that occurred and exit. */
-		memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int)); 
-                #pragma omp critical
-		{
-		  report(k*Ncells+subvol,0,Nreplicas*Ncells,
-			 0,total_reactions,errcode,report_level);
-		}
+		memcpy(&U[k*Ndofs*tlen+Mspecies*subvol+Ndofs*it],xx,Mspecies*sizeof(int));                
+		report(k*Ncells+subvol,0,Nreplicas*Ncells,
+		       0,total_reactions,errcode,report_level);
 		break;
 	      }
 	      if (report_level){
-                #pragma omp critical
-		{
-		  report(k*Ncells+subvol,0,Nreplicas*Ncells,
-			 0,total_reactions,0,report_level);
-		}
+		report(k*Ncells+subvol,0,Nreplicas*Ncells,
+		       0,total_reactions,0,report_level);
 	      }
 	    }/* main sim end */
 	    FREE(rrate);
 	    FREE(xx);
-	  } /* task end */
+	    } /* task end */
 	} /* subvol end */
+        #pragma omp taskwait
+	destroy_rng(rng);
       } /* replica end */
-      //destroy_rng(rng);
-      #pragma omp taskwait
-    } /* single end */
   } /* parallel end */
 }
 /*----------------------------------------------------------------------*/
