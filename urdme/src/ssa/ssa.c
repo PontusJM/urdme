@@ -36,7 +36,6 @@ void ssa(const PropensityFun *rfun,
 	 const size_t *jcS,const int *prS,const size_t M1,
 	 int threads
 	 )
-
 /* Specification of the inputs, see nsm.c */
 { 
   /* stats */

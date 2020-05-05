@@ -44,13 +44,13 @@ end
 % not used
 umod.sd = ceil(umod.sd);
 
-%if ~exist('plotting_off','var') || ~plotting_off
-%  figure(1), clf,
-%  pdegplot(G,'subdomainlabels','on'), axis equal
+if ~exist('plotting_off','var') || ~plotting_off
+  figure(1), clf,
+  pdegplot(G,'subdomainlabels','on'), axis equal
 
-%  figure(2), clf,
-%  pdemesh(P,E,T), axis tight, axis equal
-%end
+  figure(2), clf,
+  pdemesh(P,E,T), axis tight, axis equal
+end
 
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
@@ -78,8 +78,8 @@ umod = urdme(umod,'report',0);
 
 % visualize using PDE Toolbox
 umod = urdme2pde(umod);
-%if ~exist('plotting_off','var') || ~plotting_off
-%  figure(3), clf,
+if ~exist('plotting_off','var') || ~plotting_off
+  figure(3), clf,
 %  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
 %  title('Schnakenberg: Concentration U');
 %  view(0,90), axis tight, axis square, colormap('parula')
@@ -130,9 +130,11 @@ end
 vmod = urdme(vmod,'report',0);
 
 %save profiling info
-savestring = strcat('profile_results/',rng,'_',string(nthreads),'.mat');
+savestring = strcat(rng,'_',string(nthreads));
+mkdir profile_results;
+cd profile_results;
 p = profile('info');
-save(savestring,'p');
+profsave(p,savestring);
     end
 end
 
