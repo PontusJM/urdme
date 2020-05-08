@@ -180,5 +180,6 @@ void ssa(const PropensityFun *rfun,
 	destroy_rng(rng);
       } /* replica end */
   } /* parallel end */
+  mexPrintf("Total reactions: %ld\n",total_reactions);
 }
 /*----------------------------------------------------------------------*/

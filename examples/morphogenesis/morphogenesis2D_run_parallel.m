@@ -15,10 +15,15 @@ maxthreads = 12;
 
 
 %options for profiling (pontus)
-for nthreads = [1,2,4,6,8,10,12]
-    for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS1','GSL_RANLXS2' }
-    replicas = 6;
-
+%for nthreads = [1,2,4,6,8,10,12]
+%    for replicas = [1,6,12]
+    %nthreads = 4;
+%for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
+    %rng = 'GSL_RANLXS2';
+    nthreads = 1;
+    replicas = 1;
+    rng = 'DRAND48';
+    
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
 % build the geometry
@@ -130,11 +135,11 @@ end
 vmod = urdme(vmod,'report',0);
 
 %save profiling info
-savestring = strcat('profile_results/',rng,'_',string(nthreads),'.mat');
+savestring = strcat('profile_results_threads/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
 p = profile('info');
 save(savestring,'p');
-    end
-end
+%    end
+%end
 
 return;
 
