@@ -1,4 +1,3 @@
-
 %Morphogenesis 2D script file.
 %   This file runs the Schnakenberg and the Brusselator models in
 %   simple 2D geometries.
@@ -10,18 +9,19 @@
 % S. Engblom 2017-03-08
 
 %% (1) Schnakenberg
-
 minthreads = 1;
 maxthreads = 12;
 
 
 %options for profiling (pontus)
 %for nthreads = [1,2,4,6,8,10,12]
-%    for rng = {'DRAND48','GSL','RAND_R'}
-nthreads = 2;
-replicas = 2;
-rng = 'GSL'
+%    for replicas = [1,6,12]
+nthreads = 4;
+replicas = 4;
+for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
+%    rng = 'GSL_MT19937';
 
+    
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
 % build the geometry
@@ -50,7 +50,7 @@ umod.sd = ceil(umod.sd);
 %if ~exist('plotting_off','var') || ~plotting_off
 %  figure(1), clf,
 %  pdegplot(G,'subdomainlabels','on'), axis equal
-%
+
 %  figure(2), clf,
 %  pdemesh(P,E,T), axis tight, axis equal
 %end
@@ -68,7 +68,6 @@ umod.rng = rng;
 
 umod.seed = 1:replicas;
 
-%umod.seed = [ 1,2 ];
 if(replicas > 1)
     copy = umod.u0;
     for r = 1:replicas-1
@@ -76,13 +75,12 @@ if(replicas > 1)
     end
 end
 
-
 % solve
 profile on
 umod = urdme(umod,'report',0);
 
 % visualize using PDE Toolbox
-%umod = urdme2pde(umod);
+umod = urdme2pde(umod);
 %if ~exist('plotting_off','var') || ~plotting_off
 %  figure(3), clf,
 %  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
@@ -95,7 +93,6 @@ umod = urdme(umod,'report',0);
 %end
 
 %% (2) Brusselator
-
 % build the geometry
 C1 = [1 0 0 25]';
 gd = [C1];
@@ -120,19 +117,11 @@ vmod.sd = ceil(vmod.sd);
 
 vmod = brusselator(vmod);
 vmod.vol = 100/mean(vmod.vol)*vmod.vol;
-
-% solve
-
 vmod.D = sparse(zeros(size(vmod.D)));
-
 vmod.solver = 'ssa';
-
 vmod.solverargs = {'threads', nthreads};
-
 vmod.rng = rng;
-
 vmod.seed = 1:replicas;
-
 if(replicas > 1)
     copy = vmod.u0;
     for r = 1:replicas-1
@@ -140,28 +129,15 @@ if(replicas > 1)
     end
 end
 
+%solve
 vmod = urdme(vmod,'report',0);
 
-savestring = strcat('profile_results_sameseed/',rng,'_',string(nthreads),'.mat');
+%save profiling info
+savestring = strcat('profile_results_rngs/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
 p = profile('info');
 save(savestring,'p');
-%  end
-%end
-
-return;
-
-cd profile_results
-
-for i = minthreads:maxthreads
-    for rng = {'RAND_R','DRAND48','GSL'}
-    loadstring = strcat(rng,'_',string(i),'.mat');
-    load(loadstring);
-    filestring = strcat(rng,'_',string(i));
-    profsave(p,filestring);
-    clear p;
-    end
+%    end
 end
-        
 
 return;
 

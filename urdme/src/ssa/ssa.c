@@ -61,7 +61,7 @@ void ssa(const PropensityFun *rfun,
   /* Initiate threads amount of rngs */
   rand_state_t *rngs[threads];
   for (int n = 0; n < threads; n++){
-    rngs[n] = init_rng(Nreplicas);
+    rngs[n] = init_rng();
   }
   
   /* main loop over the (independent) units of work */ 
@@ -83,7 +83,7 @@ void ssa(const PropensityFun *rfun,
     #endif
 
     /* reseed if we moved to a new replica */
-    if(!is_initialized(rng,k)) seed_rng(rng,seed_long[k],k);
+    seed_rng(rng,seed_long[k]+subvol);
     
     size_t it = 0;
     double tt = tspan[0];
@@ -118,7 +118,7 @@ void ssa(const PropensityFun *rfun,
     /* Main simulation loop. */
     for(; ;) {
       /* time for next reaction */
-      tt -= log(1.0-sample_rng(rng,k))/srrate;
+      tt -= log(1.0-sample_rng(rng))/srrate;
       
       /* Store solution if the global time counter tt has passed the
 	 next time in tspan. */
@@ -132,7 +132,7 @@ void ssa(const PropensityFun *rfun,
       }
       
       /* a) Determine the reaction re that did occur. */
-      const double rand = sample_rng(rng,k)*srrate;
+      const double rand = sample_rng(rng)*srrate;
       double cum;
       int re;
       for (re = 0, cum = rrate[0]; re < Mreactions && rand > cum;

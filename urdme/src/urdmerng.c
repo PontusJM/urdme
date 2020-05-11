@@ -7,59 +7,51 @@
 #include "urdmerng.h"
 #include <gsl/gsl_rng.h>
 
-rand_state_t *init_rng(int Nreplicas){
+rand_state_t *init_rng(){
   rand_state_t *rng = (rand_state_t *)MALLOC(sizeof(rand_state_t));
-  state_t *states = (state_t *)MALLOC(sizeof(state_t)*Nreplicas);
-  rng->states = states;
-  rng->replicas = Nreplicas;
-  for(int i = 0; i < rng->replicas; i++){
-  switch(URDMERNG){
-  case GSL:
-    ;
-    gsl_rng *gsl = gsl_rng_alloc (gsl_rng_taus);
-    rng->states[i].ptr.gsl = gsl;
-    rng->states[i].initialized = false;
-  default:
-    ;
+  if(URDMERNG >= 3 && URDMERNG <= 7){
+    gsl_rng *gsl;
+    switch(URDMERNG){
+    case GSL_TAUS2:
+      gsl = gsl_rng_alloc (gsl_rng_taus2);
+      break;
+    case GSL_MT19937:
+      gsl = gsl_rng_alloc (gsl_rng_mt19937);
+      break;
+    case GSL_RANLXS0:
+      gsl = gsl_rng_alloc (gsl_rng_ranlxs0);
+      break;
+    case GSL_RANLXS1:
+      gsl = gsl_rng_alloc (gsl_rng_ranlxs1);
+      break;
+    case GSL_RANLXS2:
+      gsl = gsl_rng_alloc (gsl_rng_ranlxs2);
+      break;
+    default:
+      break;
+    }
+    rng->gsl = gsl;
+    return rng;
+  }else{
     unsigned int *sd = (unsigned int *)MALLOC(sizeof(unsigned int));
-    rng->states[i].ptr.state = sd;
-    rng->states[i].initialized = false;
+    rng->state = sd;
+    return rng;
   }
-  }
-  return rng;
 }
 
 void destroy_rng(rand_state_t *rng){
-  switch(URDMERNG){
-  case GSL:
-    for(int i = 0; i < rng->replicas; i++){
-      gsl_rng_free(rng->states[i].ptr.gsl);
-    }
-    break;
-  default:
-    break;
+  if(URDMERNG >= 3 && URDMERNG <= 7){
+    gsl_rng_free(rng->gsl);
   }
   FREE(rng);
 }
 
-void seed_rng(rand_state_t *rng, unsigned int seed, int replica){
-  switch(URDMERNG){
-  case GSL:
-    gsl_rng_set(rng->states[replica].ptr.gsl,seed);
-    break;
-  case DRAND48:
+void seed_rng(rand_state_t *rng, unsigned int seed){
+  if(URDMERNG >= 3 && URDMERNG <= 7){
+    gsl_rng_set(rng->gsl,seed);
+  }else if(URDMERNG == 2){
     srand48(seed);
-    break;
-  default:
-    *(rng->states[replica].ptr.state) = seed;
-    break;
-  }
-  if(!rng->states[replica].initialized) rng->states[replica].initialized = true;
-}
-
-bool is_initialized(rand_state_t *rng,int replica){
-  switch(URDMERNG){
-  default:
-    return rng->states[replica].initialized;
+  }else{
+    *(rng->state) = seed;
   }
 }
