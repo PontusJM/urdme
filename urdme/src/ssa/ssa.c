@@ -46,8 +46,7 @@ void ssa(const PropensityFun *rfun,
    For specification of all other inputs, see nsm.c
 
     */
-{
-  
+{ 
   /* stats */
   long int total_reactions = 0;
   int errcode = 0;
@@ -73,7 +72,6 @@ void ssa(const PropensityFun *rfun,
   /* main loop over the (independent) units of work */ 
   #pragma omp parallel for shared(total_reactions)
   for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
-    
     /* determine which subvolume we are in  */
     size_t subvol = (size_t) ij % Ncells;
     /* determine which replica we are in */
@@ -93,17 +91,16 @@ void ssa(const PropensityFun *rfun,
     unsigned int garb = (unsigned int) (seed_long[k] % UINT_MAX) + subvol;
     seed_rng(rng,rand_r(&garb));
     
-    size_t it = 0;
-    double tt = tspan[0];
-    
-    /* allocate state vector */
+    /* allocate state and rate vectors */
     int *xx = (int *)MALLOC(Mspecies*sizeof(int));
-    /* allocate reaction rate vector */
     double *rrate = (double *)MALLOC(Mreactions*sizeof(double));
+    
     /* sum of reaction rates */
     double srrate;
     
     /* Set (xx,tt) to the initial state. */
+    size_t it = 0;
+    double tt = tspan[0];
     memcpy(xx,&u0[Mspecies*subvol+k*Ndofs],Mspecies*sizeof(int));
     
     /* Calculate the propensity for every reaction. Store the sum of
