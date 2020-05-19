@@ -31,7 +31,7 @@ typedef union rand_state_t{
 #define seed_rng(rng,seed) gsl_rng_set(rng->gsl,seed)
 #define sample_rng(rng) (double) gsl_rng_uniform(rng->gsl)
 #define destroy_rng(rng) gsl_rng_free(rng->gsl); FREE(rng)
-#else /* DEFAULT */
+#else /* DEFAULT DRAND48 */
 #define seed_rng(rng,seed) srand48(seed)
 #define sample_rng(rng) drand48()
 #define destroy_rng(rng) FREE(rng)
