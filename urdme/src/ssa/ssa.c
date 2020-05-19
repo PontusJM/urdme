@@ -61,6 +61,8 @@ void ssa(const PropensityFun *rfun,
   omp_set_nested(false);
   omp_set_dynamic(false);
   omp_set_num_threads(threads);
+  #else
+  threads = 1;
   #endif
 
   /* Initiate threads amount of rngs */

@@ -180,7 +180,9 @@ end
 
 % Add rng options to makeargs for ssa
 if umod.solver == "ssa"
-    umod.makeargs = {umod.makeargs{:} 'rng', umod.rng};
+    umod.makeargs(length(
+    umod.makeargs = {'rng';
+                umod.rng};
 end
 
 % (1) Compile the solver.

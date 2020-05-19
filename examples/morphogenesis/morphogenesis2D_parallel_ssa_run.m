@@ -16,11 +16,11 @@ maxthreads = 12;
 %options for profiling (pontus)
 %for nthreads = [1,2,4,6,8,10,12]
 %    for replicas = [1,6,12]
-nthreads = 4;
-replicas = 4;
+nthreads = 8;
+replicas = 1;
 %for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
 %    rng = 'GSL_MT19937';
-rng = 'RAND_R';
+rng = 'GSL_MT19937';
     
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
@@ -64,6 +64,8 @@ umod.vol = 50/mean(umod.vol)*umod.vol;
 umod.D = sparse(zeros(size(umod.D)));
 
 umod.solver = 'ssa';
+
+umod.makeargs = {'openmp', true};
 
 umod.solverargs = {'threads', nthreads};
 
@@ -136,6 +138,7 @@ vmod.vol = 100/mean(vmod.vol)*vmod.vol;
 vmod.D = sparse(zeros(size(vmod.D)));
 vmod.solver = 'ssa';
 vmod.solverargs = {'threads', nthreads};
+vmod.makeargs = {'openmp', true};
 vmod.rng = rng;
 vmod.seed = 1:replicas;
 if(replicas > 1)
@@ -159,7 +162,7 @@ if(firstresults == secondresults)
 end
 
 %save profiling info
-savestring = strcat('profile_results_rngs/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
+savestring = strcat('profile_results/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
 p = profile('info');
 save(savestring,'p');
 %    end
