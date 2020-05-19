@@ -27,7 +27,7 @@ ax = gca;
 ax.XAxis.FontSize = 15;
 ax.YAxis.FontSize = 15;
 hold on
-plot(xlim,[457.561 457.561], 'r','LineWidth',2.5)
+plot(xlim,[523.861 523.861], 'r','LineWidth',2.5)
 legend({'Task','Transparent','Serial'},'FontSize',15);
 
 figure;
@@ -44,7 +44,7 @@ ax = gca;
 ax.XAxis.FontSize = 15;
 ax.YAxis.FontSize = 15;
 hold on
-plot(xlim,[221.623 221.623], 'r','LineWidth',2.5)
+plot(xlim,[258.18 258.18], 'r','LineWidth',2.5)
 legend({'Task','Transparent','Serial'},'FontSize',15);
 
 figure;
@@ -61,5 +61,5 @@ ax = gca;
 ax.XAxis.FontSize = 15;
 ax.YAxis.FontSize = 15;
 hold on
-plot(xlim,[39.578 39.578], 'r','LineWidth',2.5)
+plot(xlim,[41.158 41.158], 'r','LineWidth',2.5)
 legend({'Task','Transparent','Serial'},'FontSize',15);
