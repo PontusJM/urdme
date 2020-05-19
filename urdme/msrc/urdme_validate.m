@@ -170,3 +170,9 @@ if ~iscell(umod.makeargs)
   error('Make arguments must be a cell vector.');
 end
 umod.makeargs = reshape(umod.makeargs,1,[]);
+
+% Check RNG
+if ~(umod.solver == "ssa") && ~(umod.rng == "DRAND48")
+    msg = ['RNG must be DRAND48 for the ' umod.solver ' solver'];
+    error(msg);
+end

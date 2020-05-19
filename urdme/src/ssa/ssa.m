@@ -5,7 +5,10 @@ function ssa
 %   transport processes. The URDME SSA thus implements independent
 %   reaction processes in the voxels of the model.
 %
-%   The SSA solver supports the same solver arguments as the NSM, see
+%   The parallel SSA solver supports threading, the number of threads can
+%   be set through the 'threads' property.
+%
+%   The SSA solver furhter supports all solver arguments present in NSM, see
 %   NSM. Additionally, the SSA solver accepts make arguments, see
 %   MEXMAKE_SSA.
 %
@@ -30,6 +33,12 @@ function ssa
 %     % initial state u0 and time interval
 %     umod.u0 = zeros(size(umod.vol));
 %     umod.tspan = linspace(0,1,100);
+%     
+%     % number of threads to be utilized
+%     umod.solverargs = {'threads', 4 }
+%     
+%     % RNG to be used
+%     umod.rng = 'GSL_MT19937'
 %
 %     % compile and solve...
 %     umod = urdme(umod,'solver','ssa');

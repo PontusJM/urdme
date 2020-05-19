@@ -74,6 +74,9 @@ function umod = urdme(umod,varargin)
 %   solve                Solve on/off
 %   compile              Compilation on/off
 %   parse                Parsing on/off
+%   rng                  Random number generator for ssa
+%                        possible options: DRAND48, RAND_R,
+%                        GSL_RANLXS0, GSL_RANLXS2, GSL_TAUS2, GSL_MT19937
 %   seed                 Random seed
 %
 %   Optional, empty understood when left out:
@@ -120,7 +123,7 @@ if nargin > 1 || ~isfield(umod,'parse') || umod.parse
                   'comsol',[], ...
                   'pde',[], ...
                   'private',[], ...
-                  'rng',''); 
+                  'rng','DRAND48'); 
   % required fields, no meaningful defaults:
   req = struct('tspan',[],'u0',[],'D',[],'N',[],'G',[],'vol',[],'sd',[]);
 
