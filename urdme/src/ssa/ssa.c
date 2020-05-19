@@ -37,7 +37,14 @@ void ssa(const PropensityFun *rfun,
 	 int threads
 	 )
 
-/* Specification of the inputs, see nsm.c */
+/* 
+
+   threads is specific to the ssa solver and determines the number of threads
+   utilized by OpenMP during the simulations. If undefined it defaults to 1.
+   
+   Specification all other inputs, see nsm.c
+
+ */
 {
   /* stats */
   long int total_reactions = 0;
@@ -49,7 +56,7 @@ void ssa(const PropensityFun *rfun,
   ReportFun report = &URDMEreportFun;
  
   /* if amount of threads is undefined, set to 1 */
-  if(!threads) threads = 1;
+  if(threads < 1) threads = 1;
   
   /* OpenMP */
   #if defined(_OPENMP)
@@ -67,7 +74,7 @@ void ssa(const PropensityFun *rfun,
   /* main loop over the (independent) units of work */ 
   #pragma omp parallel for shared(total_reactions)
   for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
-    /* determine which subvolume to compute  */
+    /* determine which subvolume we are in  */
     size_t subvol = (size_t) ij % Ncells;
     /* determine which replica we are in */
     int k = (int) ij / Ncells;
@@ -82,8 +89,9 @@ void ssa(const PropensityFun *rfun,
     rng = rngs[0];
     #endif
 
-    /* reseed if we moved to a new replica */
-    seed_rng(rng,seed_long[k]+subvol);
+    /* seed rng with reproducible garbage */
+    unsigned int garb = (unsigned int) (seed_long[k] % UINT_MAX) + subvol;
+    seed_rng(rng,rand_r(&garb));
     
     size_t it = 0;
     double tt = tspan[0];
@@ -203,5 +211,6 @@ void ssa(const PropensityFun *rfun,
   for(int i = 0; i < threads; i++){
     destroy_rng(rngs[i]);
   }
+  mexPrintf("Total reactions: %ld\n",total_reactions);
 }
 /*----------------------------------------------------------------------*/

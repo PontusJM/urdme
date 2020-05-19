@@ -18,9 +18,9 @@ maxthreads = 12;
 %    for replicas = [1,6,12]
 nthreads = 4;
 replicas = 4;
-for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
+%for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
 %    rng = 'GSL_MT19937';
-
+rng = 'RAND_R';
     
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
@@ -55,6 +55,9 @@ umod.sd = ceil(umod.sd);
 %  pdemesh(P,E,T), axis tight, axis equal
 %end
 
+
+for i = 1:2
+
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
 
@@ -78,6 +81,18 @@ end
 % solve
 profile on
 umod = urdme(umod,'report',0);
+if(i==1)
+   firstresults = umod.U;
+elseif (i==2)
+   secondresults = umod.U; 
+end
+end
+
+if(firstresults == secondresults)
+    disp('experiment successful');
+end
+
+
 
 % visualize using PDE Toolbox
 umod = urdme2pde(umod);
@@ -113,6 +128,7 @@ if exist('tspan','var')
 end
 
 % not used
+for i = 1:2
 vmod.sd = ceil(vmod.sd);
 
 vmod = brusselator(vmod);
@@ -131,13 +147,23 @@ end
 
 %solve
 vmod = urdme(vmod,'report',0);
+if(i==1)
+   firstresults = umod.U;
+elseif (i==2)
+   secondresults = umod.U; 
+end
+end
+
+if(firstresults == secondresults)
+    disp('experiment successful');
+end
 
 %save profiling info
 savestring = strcat('profile_results_rngs/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
 p = profile('info');
 save(savestring,'p');
 %    end
-end
+%end
 
 return;
 

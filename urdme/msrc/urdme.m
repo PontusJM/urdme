@@ -175,10 +175,12 @@ else
   l_info(umod.report,2,'Parsing turned off.\n');
 end
 
-% Add rng options to makeargs
-umod.makeargs = {'rng';
+% Add rng options to makeargs for ssa
+if umod.solver == "ssa"
+    umod.makeargs = {'rng';
                 umod.rng};
-             
+end
+
 % (1) Compile the solver.
 if umod.compile
   % propensities, if any
