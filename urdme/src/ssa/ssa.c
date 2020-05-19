@@ -1,6 +1,6 @@
 /* ssa.c - URDME SSA solver. */
 
-/* P. Melin   2020-04-08 (OpenMP support urdmerng integration) */
+/* P. Melin   2020-05-19 (Threading, urdmerng integration) */
 /* S. Engblom 2019-11-15 (Nreplicas, multiple seeds syntax) */
 /* S. Engblom 2017-02-22 */
 
@@ -37,15 +37,17 @@ void ssa(const PropensityFun *rfun,
 	 int threads
 	 )
 
-/* 
+   /* 
 
-   threads is specific to the ssa solver and determines the number of threads
-   utilized by OpenMP during the simulations. If undefined it defaults to 1.
+   threads is specific to the parallel ssa solver and determines the number of
+   threads utilized by OpenMP during the simulations. If undefined it defaults 
+   to 1.
    
-   Specification all other inputs, see nsm.c
+   For specification of all other inputs, see nsm.c
 
- */
+    */
 {
+  
   /* stats */
   long int total_reactions = 0;
   int errcode = 0;
@@ -55,10 +57,7 @@ void ssa(const PropensityFun *rfun,
   /* reporter */
   ReportFun report = &URDMEreportFun;
  
-  /* if amount of threads is undefined, set to 1 */
-  if(threads < 1) threads = 1;
-  
-  /* OpenMP */
+  /* OpenMP settings */
   #if defined(_OPENMP)
   omp_set_nested(false);
   omp_set_dynamic(false);
@@ -74,6 +73,7 @@ void ssa(const PropensityFun *rfun,
   /* main loop over the (independent) units of work */ 
   #pragma omp parallel for shared(total_reactions)
   for(size_t ij = 0; ij < Nreplicas*Ncells; ij++){
+    
     /* determine which subvolume we are in  */
     size_t subvol = (size_t) ij % Ncells;
     /* determine which replica we are in */
@@ -205,12 +205,13 @@ void ssa(const PropensityFun *rfun,
     	       0,total_reactions,0,report_level);
       }
     }
+    /* Deallocate state and reaction rate vectors */
     FREE(rrate);
     FREE(xx);
   }
+  /* Deallocate RNGs */
   for(int i = 0; i < threads; i++){
     destroy_rng(rngs[i]);
   }
-  mexPrintf("Total reactions: %ld\n",total_reactions);
 }
 /*----------------------------------------------------------------------*/

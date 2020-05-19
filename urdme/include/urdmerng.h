@@ -1,9 +1,8 @@
 /* urdmerng.h - URDME random number generators */
 
-/* P. Melin 2020-04-09 */
+/* P. Melin 2020-05-19 */
 
 #include <gsl/gsl_rng.h>
-
 
 typedef union rand_state_t{
   unsigned int *state;

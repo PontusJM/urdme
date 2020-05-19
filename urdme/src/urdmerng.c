@@ -1,6 +1,6 @@
 /* urdmerng.c - URDME random number generators */
 
-/* P. Melin 2020-04-09 */
+/* P. Melin 2020-05-19 */
 
 #include <stdlib.h>
 #include "mex.h"
@@ -34,22 +34,3 @@ rand_state_t *init_rng(){
     return rng;
   }
 }
-
-/*
-void destroy_rng(rand_state_t *rng){
-  if(URDMERNG >= 3 && URDMERNG <= 7){
-    gsl_rng_free(rng->gsl);
-  }
-  FREE(rng);
-}
-
-void seed_rng(rand_state_t *rng, unsigned int seed){
-  if(URDMERNG >= 3 && URDMERNG <= 7){
-    gsl_rng_set(rng->gsl,seed);
-  }else if(URDMERNG == 2){
-    srand48(seed);
-  }else{
-    *(rng->state) = seed;
-  }
-}
-*/
