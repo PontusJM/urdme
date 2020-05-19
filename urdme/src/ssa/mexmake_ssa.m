@@ -45,8 +45,6 @@ optdef.link = '';
 optdef.source = '';
 optdef.rng = '';
 
-disp(varargin)
-
 % merge defaults with actual inputs
 if nargin > 1
   opts = struct(varargin{:});
@@ -57,16 +55,9 @@ if nargin > 1
 end
 opts = optdef;
 
-if(opts.openmp)
-    disp("OPENMP BABY")
-else
-    disp("NOPENMP ... baby")
-end
-
 % Random number generator
 if opts.rng
   define = [define '-DURDMERNG=' opts.rng ' '];
-  disp(define);
   rng_link1 = '-lgsl';
   rng_link2 = '-lgslcblas';
 else
