@@ -19,7 +19,7 @@ maxthreads = 12;
 nthreads = 8;
 replicas = 1;
 %for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
-%    rng = 'GSL_MT19937';
+   rng = 'GSL_MT19937';
 rng = 'GSL_MT19937';
     
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
