@@ -38,7 +38,7 @@ else
 end
 
 % default options
-optdef.openmp = true;
+optdef.openmp = false;
 optdef.define = '';
 optdef.include = '';
 optdef.link = '';
@@ -55,29 +55,24 @@ if nargin > 1
 end
 opts = optdef;
 
-rng_link1 = '';
-rng_link2 = '';
-
 % Random number generator
 if opts.rng
-  rngdef = strcat('-DURDMERNG=',opts.rng);
-  define = [define rngdef ' '];
+  define = [define '-DURDMERNG=' opts.rng ' '];
   rng_link1 = '-lgsl';
   rng_link2 = '-lgslcblas';
+else
+  rng_link1 = '';
+  rng_link2 = '';
 end
-
 
 % OpenMP
 if opts.openmp
   omp_link = '-lgomp';
   omp_cflags = '-fopenmp ';
-  %ompdef = strcat('-DOMPTHREADS=',num2str(optdef.threads));
-  %define = [define ompdef ' '];
 else
   omp_link = '';
   omp_cflags = '';
 end
-
 
 % include and source directories
 include = {['-I' path] ['-I' path '../../include']};
@@ -115,7 +110,7 @@ if strcmp(mx,'mexa64')
   cc = 'CC=gcc';
   cflags = ['CFLAGS= -fPIC ' omp_cflags ...
             '-g -fno-omit-frame-pointer -std=c99 -O3 ' ...
-            '-D_GNU_SOURCE -pthread -fexceptions -lgsl -lgslcblas -lm '];
+            '-D_GNU_SOURCE -pthread -fexceptions '];
   mex('-silent','-largeArrayDims',cc,[cflags define], ...
       include{:},link{:},source{:});
 elseif strcmp(mx,'mexmaci64')

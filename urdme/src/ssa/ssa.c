@@ -1,6 +1,6 @@
 /* ssa.c - URDME SSA solver. */
 
-/* P. Melin   2020-04-08 (OpenMP support urdmerng integration) */
+/* P. Melin   2020-05-19 (Threading, urdmerng integration) */
 /* S. Engblom 2019-11-15 (Nreplicas, multiple seeds syntax) */
 /* S. Engblom 2017-02-22 */
 
@@ -36,7 +36,16 @@ void ssa(const PropensityFun *rfun,
 	 const size_t *jcS,const int *prS,const size_t M1,
 	 int threads
 	 )
-/* Specification of the inputs, see nsm.c */
+
+   /* 
+
+   threads is specific to the parallel ssa solver and determines the number of
+   threads utilized by OpenMP during the simulations. If undefined it defaults 
+   to 1.
+   
+   For specification of all other inputs, see nsm.c
+
+    */
 { 
   /* stats */
   long int total_reactions = 0;
@@ -47,12 +56,11 @@ void ssa(const PropensityFun *rfun,
   /* reporter */
   ReportFun report = &URDMEreportFun;
  
-  /* if amount of threads is undefined, set to 1 */
-  if(!threads) threads = 1;
-  
-  /* OpenMP */
+  /* OpenMP settings */
   #if defined(_OPENMP)
   omp_set_num_threads(threads);
+  #else
+  threads = 1;
   #endif
   
   /* main loop over the (independent) units of work */ 
@@ -180,6 +188,5 @@ void ssa(const PropensityFun *rfun,
 	destroy_rng(rng);
       } /* replica end */
   } /* parallel end */
-  mexPrintf("Total reactions: %ld\n",total_reactions);
 }
 /*----------------------------------------------------------------------*/

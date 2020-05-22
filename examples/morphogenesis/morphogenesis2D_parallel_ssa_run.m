@@ -1,4 +1,3 @@
-
 %Morphogenesis 2D script file.
 %   This file runs the Schnakenberg and the Brusselator models in
 %   simple 2D geometries.
@@ -17,12 +16,11 @@ maxthreads = 12;
 %options for profiling (pontus)
 %for nthreads = [1,2,4,6,8,10,12]
 %    for replicas = [1,6,12]
-    %nthreads = 4;
+nthreads = 8;
+replicas = 1;
 %for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
-    %rng = 'GSL_RANLXS2';
-    nthreads = 1;
-    replicas = 1;
-    rng = 'DRAND48';
+   rng = 'GSL_MT19937';
+rng = 'GSL_MT19937';
     
     run = strcat('Running with ', rng, ' threads: ', string(nthreads));
     disp(run)
@@ -57,12 +55,17 @@ umod.sd = ceil(umod.sd);
 %  pdemesh(P,E,T), axis tight, axis equal
 %end
 
+
+for i = 1:2
+
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
 
 umod.D = sparse(zeros(size(umod.D)));
 
 umod.solver = 'ssa';
+
+umod.makeargs = {'openmp', true};
 
 umod.solverargs = {'threads', nthreads};
 
@@ -80,6 +83,18 @@ end
 % solve
 profile on
 umod = urdme(umod,'report',0);
+if(i==1)
+   firstresults = umod.U;
+elseif (i==2)
+   secondresults = umod.U; 
+end
+end
+
+if(firstresults == secondresults)
+    disp('experiment successful');
+end
+
+
 
 % visualize using PDE Toolbox
 umod = urdme2pde(umod);
@@ -115,6 +130,7 @@ if exist('tspan','var')
 end
 
 % not used
+for i = 1:2
 vmod.sd = ceil(vmod.sd);
 
 vmod = brusselator(vmod);
@@ -122,6 +138,7 @@ vmod.vol = 100/mean(vmod.vol)*vmod.vol;
 vmod.D = sparse(zeros(size(vmod.D)));
 vmod.solver = 'ssa';
 vmod.solverargs = {'threads', nthreads};
+vmod.makeargs = {'openmp', true};
 vmod.rng = rng;
 vmod.seed = 1:replicas;
 if(replicas > 1)
@@ -133,9 +150,19 @@ end
 
 %solve
 vmod = urdme(vmod,'report',0);
+if(i==1)
+   firstresults = umod.U;
+elseif (i==2)
+   secondresults = umod.U; 
+end
+end
+
+if(firstresults == secondresults)
+    disp('experiment successful');
+end
 
 %save profiling info
-savestring = strcat('profile_results_threads/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
+savestring = strcat('profile_results/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
 p = profile('info');
 save(savestring,'p');
 %    end

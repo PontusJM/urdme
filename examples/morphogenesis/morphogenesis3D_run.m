@@ -30,6 +30,7 @@ end
 umod.vol = 50/mean(umod.vol)*umod.vol;
 
 % solve
+%umod.rng = 'RAND_R';
 umod = urdme(umod,'report',0);
 
 return;
