@@ -18,7 +18,7 @@ rng = 'GSL_MT19937';
 
 %% (1) Schnakenberg
 
-disp('Running with ' rng ' threads: ' string(nthreads)]);
+disp(strcat('Running with ',rng, ' threads: ', string(nthreads)));
 
 % build the geometry
 C1 = [1 0 0 50]';

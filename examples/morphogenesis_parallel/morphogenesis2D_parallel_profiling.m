@@ -19,7 +19,7 @@ profiling = true;
 
 %% (1) Schnakenberg
 
-disp('Running with ' rng ' threads: ' string(nthreads)]);
+disp(strcat('Running with ',rng, ' threads: ', string(nthreads)));
 
 % Start profiling if enabled
 if profiling
