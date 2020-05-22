@@ -6,24 +6,20 @@
 %     [1] Y. Saygun: "Computational Stochastic Morphogenesis", MSc
 %     thesis in Engineering Physics, Uppsala university (2015).
 
+% P. Melin 2020-05-22
 % S. Engblom 2017-03-08
 
-%% (1) Schnakenberg
-minthreads = 1;
-maxthreads = 12;
 
-
-%options for profiling (pontus)
-%for nthreads = [1,2,4,6,8,10,12]
-%    for replicas = [1,6,12]
+% threading options (pontus)
 nthreads = 8;
 replicas = 1;
-%for rng = {'DRAND48','RAND_R','GSL_TAUS2', 'GSL_MT19937', 'GSL_RANLXS0','GSL_RANLXS2' }
-   rng = 'GSL_MT19937';
 rng = 'GSL_MT19937';
-    
-    run = strcat('Running with ', rng, ' threads: ', string(nthreads));
-    disp(run)
+
+
+%% (1) Schnakenberg
+
+disp(strcat('Running with ',rng, ' threads: ', string(nthreads)));
+
 % build the geometry
 C1 = [1 0 0 50]';
 C2 = [1 0 0 15]';
@@ -47,32 +43,24 @@ end
 % not used
 umod.sd = ceil(umod.sd);
 
-%if ~exist('plotting_off','var') || ~plotting_off
-%  figure(1), clf,
-%  pdegplot(G,'subdomainlabels','on'), axis equal
+if ~exist('plotting_off','var') || ~plotting_off
+  figure(1), clf,
+  pdegplot(G,'subdomainlabels','on'), axis equal
 
-%  figure(2), clf,
-%  pdemesh(P,E,T), axis tight, axis equal
-%end
-
-
-for i = 1:2
-
+  figure(2), clf,
+  pdemesh(P,E,T), axis tight, axis equal
+end
+  
 umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
-
 umod.D = sparse(zeros(size(umod.D)));
-
 umod.solver = 'ssa';
-
 umod.makeargs = {'openmp', true};
-
 umod.solverargs = {'threads', nthreads};
-
 umod.rng = rng;
-
 umod.seed = 1:replicas;
 
+% Create more replicas if specified
 if(replicas > 1)
     copy = umod.u0;
     for r = 1:replicas-1
@@ -81,33 +69,20 @@ if(replicas > 1)
 end
 
 % solve
-profile on
 umod = urdme(umod,'report',0);
-if(i==1)
-   firstresults = umod.U;
-elseif (i==2)
-   secondresults = umod.U; 
-end
-end
-
-if(firstresults == secondresults)
-    disp('experiment successful');
-end
-
-
 
 % visualize using PDE Toolbox
 umod = urdme2pde(umod);
-%if ~exist('plotting_off','var') || ~plotting_off
-%  figure(3), clf,
-%  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
-%  title('Schnakenberg: Concentration U');
-%  view(0,90), axis tight, axis square, colormap('parula')
-%  figure(4), clf,
-%  h = pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(2,:,end)');
-%  title('Schnakenberg: Concentration V');
-%  view(0,90), axis tight, axis square, colormap('parula')
-%end
+if ~exist('plotting_off','var') || ~plotting_off
+  figure(3), clf,
+  pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(1,:,end)');
+  title('Schnakenberg: Concentration U');
+  view(0,90), axis tight, axis square, colormap('parula')
+  figure(4), clf,
+  h = pdesurf(umod.pde.P,umod.pde.T,umod.pde.U(2,:,end)');
+  title('Schnakenberg: Concentration V');
+  view(0,90), axis tight, axis square, colormap('parula')
+end
 
 %% (2) Brusselator
 % build the geometry
@@ -129,10 +104,7 @@ if exist('tspan','var')
   vmod.tspan = tspan;
 end
 
-% not used
-for i = 1:2
 vmod.sd = ceil(vmod.sd);
-
 vmod = brusselator(vmod);
 vmod.vol = 100/mean(vmod.vol)*vmod.vol;
 vmod.D = sparse(zeros(size(vmod.D)));
@@ -141,6 +113,7 @@ vmod.solverargs = {'threads', nthreads};
 vmod.makeargs = {'openmp', true};
 vmod.rng = rng;
 vmod.seed = 1:replicas;
+
 if(replicas > 1)
     copy = vmod.u0;
     for r = 1:replicas-1
@@ -150,26 +123,7 @@ end
 
 %solve
 vmod = urdme(vmod,'report',0);
-if(i==1)
-   firstresults = umod.U;
-elseif (i==2)
-   secondresults = umod.U; 
-end
-end
-
-if(firstresults == secondresults)
-    disp('experiment successful');
-end
-
-%save profiling info
-savestring = strcat('profile_results/',rng,'_T',string(nthreads),'_R',string(replicas),'.mat');
-p = profile('info');
-save(savestring,'p');
-%    end
-%end
-
-return;
-
+   
 % visualize using PDE Toolbox
 vmod = urdme2pde(vmod);
 if ~exist('plotting_off','var') || ~plotting_off
@@ -182,8 +136,6 @@ if ~exist('plotting_off','var') || ~plotting_off
   title('Brusselator: Concentration V');
   view(0,90), axis tight, axis square, colormap('parula')
 end
-
-return;
 
 % possibly print to files
 
