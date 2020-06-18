@@ -43,7 +43,8 @@ optdef.define = '';
 optdef.include = '';
 optdef.link = '';
 optdef.source = '';
-optdef.rng = '';
+optdef.rng = 'GSL_MT19937';
+optdef.nthreads = 1;
 
 % merge defaults with actual inputs
 if nargin > 1
@@ -56,14 +57,9 @@ end
 opts = optdef;
 
 % Random number generator
-if opts.rng
-  define = [define '-DURDMERNG=' opts.rng ' '];
-  rng_link1 = '-lgsl';
-  rng_link2 = '-lgslcblas';
-else
-  rng_link1 = '';
-  rng_link2 = '';
-end
+define = [define '-DURDMERNG=' opts.rng ' '];
+rng_link1 = '-lgsl';
+rng_link2 = '-lgslcblas';
 
 % OpenMP
 if opts.openmp
@@ -73,6 +69,9 @@ else
   omp_link = '';
   omp_cflags = '';
 end
+
+%threads
+define = [define '-DNTHREADS=' num2str(opts.nthreads) ' '];
 
 % include and source directories
 include = {['-I' path] ['-I' path '../../include']};

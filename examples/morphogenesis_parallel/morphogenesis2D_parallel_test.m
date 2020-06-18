@@ -11,7 +11,7 @@
 
 
 % threading options (pontus)
-nthreads = 8;
+nthreads = 6;
 replicas = 1;
 rng = 'GSL_MT19937';
 
@@ -49,8 +49,7 @@ for i = 1:2
     umod.vol = 50/mean(umod.vol)*umod.vol;
     umod.D = sparse(zeros(size(umod.D)));
     umod.solver = 'ssa';
-    umod.makeargs = {'openmp', true};
-    umod.solverargs = {'threads', nthreads};
+    umod.makeargs = {'openmp', true, 'nthreads', nthreads};
     umod.rng = rng;
     umod.seed = 1:replicas;
 
@@ -107,8 +106,7 @@ for i = 1:2
     vmod.vol = 100/mean(vmod.vol)*vmod.vol;
     vmod.D = sparse(zeros(size(vmod.D)));
     vmod.solver = 'ssa';
-    vmod.solverargs = {'threads', nthreads};
-    vmod.makeargs = {'openmp', true};
+    vmod.makeargs = {'openmp', true, 'nthreads', nthreads};
     vmod.rng = rng;
     vmod.seed = 1:replicas;
 

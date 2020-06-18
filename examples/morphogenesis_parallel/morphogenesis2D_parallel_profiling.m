@@ -11,8 +11,8 @@
 
 
 %options for profiling (pontus)
-nthreads = 8;
-replicas = 1;
+nthreads = 6;
+replicas = 6;
 rng = 'GSL_MT19937';
 profiling = true;
 
@@ -53,8 +53,7 @@ umod = schnakenberg(umod);
 umod.vol = 50/mean(umod.vol)*umod.vol;
 umod.D = sparse(zeros(size(umod.D)));
 umod.solver = 'ssa';
-umod.makeargs = {'openmp', true};
-umod.solverargs = {'threads', nthreads};
+umod.makeargs = {'openmp', true, 'nthreads', nthreads};
 umod.rng = rng;
 umod.seed = 1:replicas;
 
@@ -94,8 +93,7 @@ vmod = brusselator(vmod);
 vmod.vol = 100/mean(vmod.vol)*vmod.vol;
 vmod.D = sparse(zeros(size(vmod.D)));
 vmod.solver = 'ssa';
-vmod.solverargs = {'threads', nthreads};
-vmod.makeargs = {'openmp', true};
+vmod.makeargs = {'openmp', true, 'nthreads', nthreads};
 vmod.rng = rng;
 vmod.seed = 1:replicas;
 

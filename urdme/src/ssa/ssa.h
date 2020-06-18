@@ -20,8 +20,7 @@ void ssa(const PropensityFun *rfun,
 	 const size_t dsize,
 	 int report_level,const long *seed_long,
 	 const double *K,const int *I,
-	 const size_t *jcS,const int *prS,const size_t M1,
-	 int threads
+	 const size_t *jcS,const int *prS,const size_t M1
 	 );
 
 #endif /* SSA_H */

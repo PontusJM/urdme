@@ -145,8 +145,7 @@ void mexFunction(int nlhs,mxArray *plhs[],int nrhs,const mxArray *prhs[])
       Ncells,Mspecies,Mreactions,
       dsize,
       report_level,seed_long,
-      K,I,(const size_t *)jcS,prS,M1
-      ,threads);
+      K,I,(const size_t *)jcS,prS,M1);
   FREE_propensities(rfun);
 
   /* Deallocate. */

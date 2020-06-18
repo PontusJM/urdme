@@ -33,8 +33,7 @@ void ssa(const PropensityFun *rfun,
 	 const size_t dsize,
 	 int report_level,const long *seed_long,
 	 const double *K,const int *I,
-	 const size_t *jcS,const int *prS,const size_t M1,
-	 int threads
+	 const size_t *jcS,const int *prS,const size_t M1
 	 )
 
    /* 
@@ -60,15 +59,15 @@ void ssa(const PropensityFun *rfun,
   #if defined(_OPENMP)
   omp_set_nested(false);
   omp_set_dynamic(false);
-  omp_set_num_threads(threads);
-  #else
-  threads = 1;
+  omp_set_num_threads(NTHREADS);
   #endif
 
-  /* Initiate threads amount of rngs */
-  rand_state_t *rngs[threads];
-  for (int n = 0; n < threads; n++){
-    rngs[n] = init_rng();
+  /* Allocate threads amount of rngs in data segment */
+  static rand_state_t *rngs[NTHREADS];
+  /* Only initialize on first call */
+  if(*rngs == NULL){
+    for (int n = 0; n < NTHREADS; n++)
+      rngs[n] = init_rng();
   }
   
   /* main loop over the (independent) units of work */ 
@@ -88,10 +87,11 @@ void ssa(const PropensityFun *rfun,
     #else
     rng = rngs[0];
     #endif
-
-    /* seed rng with reproducible garbage */
-    unsigned int garb = (unsigned int) (seed_long[k] % UINT_MAX) + subvol;
-    seed_rng(rng,rand_r(&garb));
+    
+    /* calculate hash value based on seed and subvol number using Knuth's multiplicative method */
+    unsigned int hash = (seed_long[k]+subvol)*2654435761 % 2^32;
+    /* seed rng with a random value generated from the calculated hash */
+    seed_rng(rng,rand_r(&hash));
     
     /* allocate state and rate vectors */
     int *xx = (int *)MALLOC(Mspecies*sizeof(int));
@@ -207,10 +207,6 @@ void ssa(const PropensityFun *rfun,
     /* Deallocate state and reaction rate vectors */
     FREE(rrate);
     FREE(xx);
-  }
-  /* Deallocate RNGs */
-  for(int i = 0; i < threads; i++){
-    destroy_rng(rngs[i]);
   }
 }
 /*----------------------------------------------------------------------*/
